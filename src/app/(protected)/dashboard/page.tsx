@@ -286,13 +286,13 @@ if (calendarResponse && calendarResponse.ok) {
         let weeklyEventsCount = 0;
         let monthlyEventsCount = 0;
         if (allEvents && Array.isArray(allEvents)) {
-          weeklyEventsCount = allEvents.filter(event => {
+          weeklyEventsCount = allEvents.filter((event: any) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= weekAgo && eventDate <= now;
           }).length;
           
-          monthlyEventsCount = allEvents.filter(event => {
+          monthlyEventsCount = allEvents.filter((event: any) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= monthAgo && eventDate <= now;
@@ -302,31 +302,31 @@ if (calendarResponse && calendarResponse.ok) {
         }
 
         // Expense analytics
-        const monthlyExpenses = Array.isArray(allExpenses) ? allExpenses.filter(expense => {
+        const monthlyExpenses = Array.isArray(allExpenses) ? allExpenses.filter((expense: any) => {
           const expenseDate = new Date(expense.date);
           return expenseDate >= monthAgo && expenseDate <= now;
         }) : [];
 
-        const totalMonthlyExpenses = monthlyExpenses.reduce((sum, exp) => {
-          const creditAmount = parseFloat(exp.creditAmount || 0);
-          const debitAmount = parseFloat(exp.debitAmount || 0);
-          const legacyAmount = parseFloat(exp.amount || 0);
+        const totalMonthlyExpenses = monthlyExpenses.reduce((sum: number, exp: any) => {
+          const creditAmount = parseFloat(String(exp.creditAmount || '0'));
+          const debitAmount = parseFloat(String(exp.debitAmount || '0'));
+          const legacyAmount = parseFloat(String(exp.amount || '0'));
           const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
           return sum + netAmount;
         }, 0);
         
         // Find top expense category
-        const categoryTotals = {};
-        monthlyExpenses.forEach(expense => {
+        const categoryTotals: any = {};
+        monthlyExpenses.forEach((expense: any) => {
           const category = expense.category || 'Other';
-          const creditAmount = parseFloat(expense.creditAmount || 0);
-          const debitAmount = parseFloat(expense.debitAmount || 0);
-          const legacyAmount = parseFloat(expense.amount || 0);
+          const creditAmount = parseFloat(String(expense.creditAmount || '0'));
+          const debitAmount = parseFloat(String(expense.debitAmount || '0'));
+          const legacyAmount = parseFloat(String(expense.amount || '0'));
           const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
           categoryTotals[category] = (categoryTotals[category] || 0) + netAmount;
         });
         
-        const topCategory = Object.keys(categoryTotals).reduce((a, b) => 
+        const topCategory = Object.keys(categoryTotals).reduce((a: string, b: string) => 
           categoryTotals[a] > categoryTotals[b] ? a : b, 'Groceries'
         );
 
@@ -337,7 +337,7 @@ if (calendarResponse && calendarResponse.ok) {
           if (diaryResponse) {
             const diary = await safeJsonParse(diaryResponse);
             if (diary && diary.success && diary.data) {
-              diaryEntriesCount = diary.data.filter(entry => {
+              diaryEntriesCount = diary.data.filter((entry: any) => {
                 const entryDate = new Date(entry.date);
                 return entryDate >= monthAgo && entryDate <= now;
               }).length;
@@ -521,7 +521,7 @@ if (calendarResponse && calendarResponse.ok) {
                       : 'bg-yellow-500'
                   }`}></div>
                   <span className="text-sm text-gray-600">
-                    {Object.values(dataLoadingStatus).filter(status => status === 'success').length}/4 {t('dataSourcesConnected')}
+                    {Object.values(dataLoadingStatus).filter((status: string) => status === 'success').length}/4 {t('dataSourcesConnected')}
                   </span>
                 </div>
               )}
@@ -626,10 +626,10 @@ if (calendarResponse && calendarResponse.ok) {
                     <div className="animate-pulse bg-gray-300 h-8 w-24 rounded"></div>
                   ) : (
                     <p className="text-2xl font-bold text-primary">
-                      {(dashboardData.allExpenses || []).reduce((sum, exp) => {
-                        const creditAmount = parseFloat(exp.creditAmount || 0);
-                        const debitAmount = parseFloat(exp.debitAmount || 0);
-                        const legacyAmount = parseFloat(exp.amount || 0);
+                      {(dashboardData.allExpenses || []).reduce((sum: number, exp: any) => {
+                        const creditAmount = parseFloat(String(exp.creditAmount || '0'));
+                        const debitAmount = parseFloat(String(exp.debitAmount || '0'));
+                        const legacyAmount = parseFloat(String(exp.amount || '0'));
                         const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
                         return sum + netAmount;
                       }, 0).toFixed(2)} OMR
@@ -721,10 +721,10 @@ if (calendarResponse && calendarResponse.ok) {
                 {(dashboardData.allEvents || []).length > 0 ? (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {(dashboardData.allEvents || [])
-                      .filter(event => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
-                      .sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
+                      .filter((event: any) => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
+                      .sort((a: any, b: any) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
                       .slice(0, 10)
-                      .map((event) => (
+                      .map((event: any) => (
                       <div key={event.id} className="flex items-center p-3 bg-muted rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium text-black">{event.summary}</h4>
@@ -769,9 +769,9 @@ if (calendarResponse && calendarResponse.ok) {
                         </div>
                         <span className="font-bold text-accent">
                           {(() => {
-                            const creditAmount = parseFloat(expense.creditAmount || 0);
-                            const debitAmount = parseFloat(expense.debitAmount || 0);
-                            const legacyAmount = parseFloat(expense.amount || 0);
+                            const creditAmount = parseFloat(String(expense.creditAmount || '0'));
+                            const debitAmount = parseFloat(String(expense.debitAmount || '0'));
+                            const legacyAmount = parseFloat(String(expense.amount || '0'));
                             const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
                             return netAmount.toFixed(2);
                           })()} OMR

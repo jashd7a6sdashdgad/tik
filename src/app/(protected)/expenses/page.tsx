@@ -505,7 +505,7 @@ export default function ExpensesPage() {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => deleteExpense(expense.id)}
+                            onClick={() => expense.id && deleteExpense(expense.id)}
                             disabled={deleting === expense.id}
                           >
                             <Trash2 className={`h-4 w-4 ${deleting === expense.id ? 'animate-spin' : 'text-red-500'}`} />
@@ -521,9 +521,9 @@ export default function ExpensesPage() {
                   <div className="flex items-center justify-between mt-6 pt-4 border-t">
                     <div className="text-sm text-gray-600">
                       {t('showingEntries', { 
-                        start: ((currentPage - 1) * itemsPerPage) + 1, 
-                        end: Math.min(currentPage * itemsPerPage, expenses.length), 
-                        total: expenses.length 
+                        start: String(((currentPage - 1) * itemsPerPage) + 1), 
+                        end: String(Math.min(currentPage * itemsPerPage, expenses.length)), 
+                        total: String(expenses.length) 
                       })}
                     </div>
                     <div className="flex space-x-2">

@@ -150,7 +150,7 @@ export default function VoiceMessageRecorder({
       }
 
       // Ensure MediaRecorder is in correct state before starting
-      if (mediaRecorderRef.current.state !== 'inactive') {
+      if (mediaRecorderRef.current?.state !== 'inactive') {
         console.log('⚠️ MediaRecorder not in inactive state, reinitializing...');
         await initializeRecorder();
       }

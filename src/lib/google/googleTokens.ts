@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 
 export async function getGoogleAccessToken() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   let accessToken = cookieStore.get('google_access_token')?.value;
   const refreshToken = cookieStore.get('google_refresh_token')?.value;
 
@@ -29,13 +29,15 @@ export async function getGoogleAccessToken() {
     const data = await res.json();
     accessToken = data.access_token;
 
-    // Update cookie
-    cookieStore.set('google_access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: data.expires_in || 3600
-    });
+    // Update cookie (with type guard)
+    if (accessToken) {
+        cookieStore.set('google_access_token', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: data.expires_in || 3600
+      });
+    }
 
     return accessToken;
   }

@@ -393,7 +393,7 @@ export default function VoiceChatInterface({
               message.messageType === 'voice' ? (
                 <VoiceMessageDisplay
                   key={message.id}
-                  message={message}
+                  message={{ ...message, duration: message.duration || 0 }}
                   onPlayStateChange={handlePlayStateChange}
                   className="mb-3"
                 />

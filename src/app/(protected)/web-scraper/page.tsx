@@ -131,7 +131,7 @@ export default function WebScraperPage() {
         {/* Tab Selection */}
         <div className="flex space-x-2 mb-6">
           <Button
-            variant={activeTab === 'scrape' ? 'default' : 'outline'}
+            variant={activeTab === 'scrape' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('scrape')}
             className="flex items-center space-x-2"
           >
@@ -139,7 +139,7 @@ export default function WebScraperPage() {
             <span>{t('scrapeUrl')}</span>
           </Button>
           <Button
-            variant={activeTab === 'search' ? 'default' : 'outline'}
+            variant={activeTab === 'search' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('search')}
             className="flex items-center space-x-2"
           >

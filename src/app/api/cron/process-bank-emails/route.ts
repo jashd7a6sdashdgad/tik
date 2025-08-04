@@ -69,15 +69,14 @@ export async function POST(request: NextRequest) {
           const serviceAccount = JSON.parse(serviceAccountKey);
           
           console.log('🔑 [CRON] Creating JWT client...');
-          const jwtClient = new JWT(
-            serviceAccount.client_email,
-            null,
-            serviceAccount.private_key,
-            [
+          const jwtClient = new JWT({
+            email: serviceAccount.client_email,
+            key: serviceAccount.private_key,
+            scopes: [
               'https://www.googleapis.com/auth/gmail.modify',
               'https://www.googleapis.com/auth/spreadsheets'
             ]
-          );
+          });
           
           console.log('🔐 [CRON] Authorizing JWT client...');
           await jwtClient.authorize();
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
     
     // Process bank emails
     const results = await processBankEmails(tokens, {
-      bankEmail,
+      bankEmails: [bankEmail],
       spreadsheetId,
       sheetName,
       expenseLabel

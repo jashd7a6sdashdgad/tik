@@ -61,7 +61,7 @@ export class BankEmailProcessor {
     const results = {
       processed: 0,
       duplicates: 0,
-      errors: []
+      errors: [] as string[]
     };
 
     try {
@@ -78,7 +78,7 @@ export class BankEmailProcessor {
         results.processed++;
       } catch (immediateN8nError) {
         console.error(`❌ Immediate N8N send failed:`, immediateN8nError);
-        results.errors.push(`Immediate N8N send failed: ${immediateN8nError.message}`);
+        results.errors.push(`Immediate N8N send failed: ${(immediateN8nError as any).message}`);
       }
       
       // Get or create the expense labels
@@ -127,7 +127,7 @@ export class BankEmailProcessor {
           const emailData = await this.gmail.getMessage('1986980f0a4d9532');
           console.log(`🔍 Problem email labels:`, emailData.labelIds);
         } catch (error) {
-          console.log(`🔍 Could not fetch problem email: ${error.message}`);
+          console.log(`🔍 Could not fetch problem email: ${(error as any).message}`);
         }
       }
       
@@ -206,8 +206,8 @@ export class BankEmailProcessor {
               console.log(`🏷️ Marked email ${message.id} as processed (N8N handled)`);
               results.processed++;
             } catch (n8nError) {
-              console.error(`❌ Failed to send to N8N: ${n8nError.message}`);
-              results.errors.push(`Failed to parse email ${message.id} and N8N failed: ${n8nError.message}`);
+              console.error(`❌ Failed to send to N8N: ${(n8nError as any).message}`);
+              results.errors.push(`Failed to parse email ${message.id} and N8N failed: ${(n8nError as any).message}`);
               
               // Mark as failed only if N8N also fails
               try {
@@ -243,14 +243,14 @@ export class BankEmailProcessor {
           await new Promise(resolve => setTimeout(resolve, 100));
           
         } catch (error) {
-          const errorMsg = `Error processing email ${message.id}: ${error.message}`;
+          const errorMsg = `Error processing email ${message.id}: ${(error as any).message}`;
           console.error(errorMsg);
           results.errors.push(errorMsg);
         }
       }
 
     } catch (error) {
-      const errorMsg = `Fatal error in processBankEmails: ${error.message}`;
+      const errorMsg = `Fatal error in processBankEmails: ${(error as any).message}`;
       console.error(errorMsg);
       results.errors.push(errorMsg);
     }
@@ -748,7 +748,7 @@ export class BankEmailProcessor {
       console.log(`📡 N8N fetch completed, status: ${response.status}`);
     } catch (fetchError) {
       console.error(`❌ Fetch error to N8N:`, fetchError);
-      throw new Error(`Failed to connect to N8N webhook: ${fetchError.message}`);
+      throw new Error(`Failed to connect to N8N webhook: ${(fetchError as any).message}`);
     }
 
     if (!response.ok) {

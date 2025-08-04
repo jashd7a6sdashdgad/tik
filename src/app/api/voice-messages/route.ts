@@ -66,14 +66,14 @@ export async function POST(request: NextRequest) {
       const n8nResponse = await sendToN8N({
         ...body,
         userId: user.id,
-        userName: user.name || 'User'
+        userName: (user as any).name || 'User'
       });
       
       if (!n8nResponse.success) {
         return NextResponse.json(
           {
             success: false,
-            message: n8nResponse.message || n8nResponse.error || 'N8N processing failed',
+            message: (n8nResponse as any).message || (n8nResponse as any).error || 'N8N processing failed',
             error: 'SERVICE_NOT_CONFIGURED'
           },
           { status: 503 }
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          aiResponse: n8nResponse.aiResponse,
-          processingTime: n8nResponse.processingTime
+          aiResponse: (n8nResponse as any).aiResponse,
+          processingTime: (n8nResponse as any).processingTime
         },
         message: 'Text message processed successfully',
         userId: user.id,
@@ -107,14 +107,14 @@ export async function POST(request: NextRequest) {
       const n8nResponse = await sendToN8N({
         ...body,
         userId: user.id,
-        userName: user.name || 'User'
+        userName: (user as any).name || 'User'
       });
       
       if (!n8nResponse.success) {
         return NextResponse.json(
           {
             success: false,
-            message: n8nResponse.message || n8nResponse.error || 'N8N processing failed',
+            message: (n8nResponse as any).message || (n8nResponse as any).error || 'N8N processing failed',
             error: 'SERVICE_NOT_CONFIGURED'
           },
           { status: 503 }
@@ -126,10 +126,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          transcription: n8nResponse.transcription,
-          aiResponse: n8nResponse.aiResponse,
-          audioResponse: n8nResponse.audioResponse,
-          processingTime: n8nResponse.processingTime
+          transcription: (n8nResponse as any).transcription,
+          aiResponse: (n8nResponse as any).aiResponse,
+          audioResponse: (n8nResponse as any).audioResponse,
+          processingTime: (n8nResponse as any).processingTime
         },
         message: 'Voice message processed successfully',
         userId: user.id,

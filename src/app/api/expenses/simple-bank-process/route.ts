@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const results = {
       processed: 0,
       duplicates: 0,
-      errors: []
+      errors: [] as string[]
     };
 
     try {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       const SPREADSHEET_ID = process.env.EXPENSES_SPREADSHEET_ID || '1T7hKST5hJTkjxByCK5qBE1YZ6rBUkIoHAzP2BzPqmAE';
       
       // Get existing expenses
-      let existingExpenses = [];
+      let existingExpenses: any[][] = [];
       try {
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId: SPREADSHEET_ID,
@@ -189,7 +189,7 @@ function parseEmailForTransaction(emailData: any): BankTransaction | null {
       /amount[\s:]*(\d+(?:\.\d{3})?)/gi,
     ];
 
-    let amount = null;
+    let amount: number | null = null;
     for (const pattern of amountPatterns) {
       const match = pattern.exec(fullText);
       if (match) {
@@ -204,7 +204,7 @@ function parseEmailForTransaction(emailData: any): BankTransaction | null {
       /POS\s+([A-Za-z\s&\-']+?)(?:\s+on|\s+OMR|\s+RO|$)/gi,
     ];
 
-    let merchant = null;
+    let merchant: string | null = null;
     for (const pattern of merchantPatterns) {
       const match = pattern.exec(fullText);
       if (match) {

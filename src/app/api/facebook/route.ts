@@ -141,11 +141,11 @@ export async function POST(request: NextRequest) {
       const errorText = await facebookResponse.text();
       
       let errorDetail = errorText;
-      let errorJson = null;
+      let errorJson: any = null;
       
       try {
         errorJson = JSON.parse(errorText);
-        errorDetail = errorJson.error?.message || errorText;
+        errorDetail = errorJson?.error?.message || errorText;
       } catch (e) {
         // Use raw text if not JSON
       }
@@ -311,11 +311,11 @@ export async function GET(request: NextRequest) {
       const errorText = await facebookResponse.text();
       
       let errorDetail = errorText;
-      let errorJson = null;
+      let errorJson: any = null;
       
       try {
         errorJson = JSON.parse(errorText);
-        errorDetail = errorJson.error?.message || errorText;
+        errorDetail = errorJson?.error?.message || errorText;
       } catch (e) {
         // Use raw text if not JSON
       }
