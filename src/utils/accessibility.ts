@@ -18,7 +18,7 @@ export function announceToScreenReader(message: string, priority: 'polite' | 'as
 }
 
 // Speak text using native browser TTS with language support
-export function speakText(text: string, language: string = 'en', options: SpeechSynthesisUtterance = {}) {
+export function speakText(text: string, language: string = 'en', options: Partial<SpeechSynthesisUtterance> = {}) {
   if (!('speechSynthesis' in window)) {
     console.warn('Speech synthesis not supported');
     return;

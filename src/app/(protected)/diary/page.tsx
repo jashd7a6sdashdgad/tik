@@ -10,7 +10,6 @@ import { useTranslation } from '@/lib/translations';
 import { 
   BookOpen, 
   Plus, 
-  Search,
   Calendar,
   Heart,
   Frown,

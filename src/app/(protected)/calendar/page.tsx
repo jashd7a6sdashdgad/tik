@@ -13,7 +13,6 @@ import {
   Edit, 
   Trash2, 
   Clock, 
-  MapPin,
   Users,
   Mic,
   RefreshCw

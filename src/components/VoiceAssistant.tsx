@@ -12,13 +12,10 @@ import {
   Volume2, 
   VolumeX, 
   Minimize2, 
-  Maximize2,
   MessageCircle,
   Bot,
   User,
-  Send,
-  Loader2,
-  Settings
+  Loader2
 } from 'lucide-react';
 
 interface VoiceMessage {

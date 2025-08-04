@@ -447,7 +447,7 @@ export const translations: Record<string, Translation> = {
     mostProductiveDay: "Most Productive Day",
     topExpenseCategory: "Top Expense Category",
     peakHours: "Peak Hours",
-    quickActions: "Quick Actions",
+    dashboardQuickActions: "Quick Actions",
     navigateToFavoriteTools: "Navigate to your favorite tools",
     goalsProgress: "Goals & Progress",
     trackMonthlyTargets: "Track your monthly targets",
@@ -508,18 +508,6 @@ export const translations: Record<string, Translation> = {
     pleaseFillAmountDescription: "Please fill in amount and description",
     failedToAddExpense: "Failed to add expense",
     errorAddingExpense: "Error adding expense",
-    
-    // Common Categories (duplicate set)
-    categoryFood: "Food",
-    categoryTransportation: "Transportation", 
-    categoryBusiness: "Business",
-    categoryMedical: "Medical",
-    categoryEntertainment: "Entertainment",
-    categoryShopping: "Shopping",
-    categoryUtilities: "Utilities",
-    categoryTravel: "Travel",
-    categoryEducation: "Education",
-    categoryGeneral: "General",
     
     // User names and placeholders
     johnDoe: "John Doe",
@@ -633,7 +621,7 @@ export const translations: Record<string, Translation> = {
     tapToRecord: "Tap to record",
     failedToProcessVoice: "Failed to process voice message response",
     failedToSendText: "Failed to send text message",
-    chatWebhookUrl: "Webhook:",
+    webhookLabel: "Webhook:",
     you: "You",
     assistant: "Assistant",
     voiceMessage: "Voice Message"
@@ -720,7 +708,7 @@ export const translations: Record<string, Translation> = {
     
     // Voice
     voice: "الصوت",
-    voiceAssistant: "المساعد الصوتي",
+    voiceSettings: "المساعد الصوتي",
     voiceDescription: "تكوين إعدادات الدخل والخرج الصوتي",
     voiceInput: "الدخل الصوتي",
     voiceLanguage: "لغة الصوت",
@@ -1083,7 +1071,7 @@ export const translations: Record<string, Translation> = {
     mostProductiveDay: "أكثر الأيام إنتاجية",
     topExpenseCategory: "أعلى فئة مصروفات",
     peakHours: "ساعات الذروة",
-    quickActions: "إجراءات سريعة",
+    dashboardQuickActions: "إجراءات سريعة",
     navigateToFavoriteTools: "انتقل إلى أدواتك المفضلة",
     goalsProgress: "الأهداف والتقدم",
     trackMonthlyTargets: "تتبع أهدافك الشهرية",
@@ -1145,18 +1133,6 @@ export const translations: Record<string, Translation> = {
     failedToAddExpense: "فشل في إضافة المصروف",
     errorAddingExpense: "خطأ في إضافة المصروف",
     
-    // Common Categories (duplicate set)
-    categoryFood: "طعام",
-    categoryTransportation: "مواصلات", 
-    categoryBusiness: "أعمال",
-    categoryMedical: "طبي",
-    categoryEntertainment: "ترفيه",
-    categoryShopping: "تسوق",
-    categoryUtilities: "مرافق",
-    categoryTravel: "سفر",
-    categoryEducation: "تعليم",
-    categoryGeneral: "عام",
-    
     // User names and placeholders
     johnDoe: "جون دو",
     personalAssistantAvatar: "صورة المساعد الشخصي",
@@ -1198,47 +1174,10 @@ export const translations: Record<string, Translation> = {
     whatsappStyleBubbles: "فقاعات بنمط واتساب",
     
     // Voice Recording Features
-    webmOggFormats: "تنسيقات WebM/OGG الصوتية",
+    supportedAudioFormats: "تنسيقات WebM/OGG الصوتية",
     realTimeDurationTracking: "تتبع المدة في الوقت الفعلي",
-    waveformVisualization: "تصور الموجة الصوتية",
-    base64EncodingN8n: "ترميز Base64 لـ N8N",
-    
-    // AI Processing Features
-    automaticTranscription: "النسخ التلقائي",
-    aiResponseGeneration: "توليد الردود بالذكاء الاصطناعي",
-    voiceSynthesis: "تركيب الصوت",
-    contextAwareness: "الوعي بالسياق",
-    multiLanguageSupport: "دعم متعدد اللغات",
-    
-    // Playback Features
-    instantAudioPlayback: "تشغيل صوتي فوري",
-    progressVisualization: "تصور التقدم",
-    autoPlayAiResponses: "تشغيل ردود الذكاء الاصطناعي تلقائياً",
-    seekScrubControls: "أدوات التحكم في البحث",
-    mixedMessageTypes: "أنواع رسائل مختلطة",
-    
-    // Usage Instructions
-    typeMessageInput: "اكتب رسالتك في إدخال النص",
-    pressEnterSend: "اضغط Enter أو انقر على زر الإرسال",
-    messageAppearsChat: "تظهر الرسالة فوراً في المحادثة",
-    aiProcessesResponds: "الذكاء الاصطناعي يعالج ويرد",
-    responseAppearsText: "الرد يظهر كفقاعة نصية",
-    pressMicrophoneRecord: "اضغط زر الميكروفون للتسجيل",
-    speakMessage: "تحدث برسالتك (الحد الأقصى {maxDuration} ثانية)",
-    pressStopFinish: "اضغط إيقاف لإنهاء التسجيل",
-    previewPlayback: "معاينة وتشغيل رسالتك",
-    pressSendSubmit: "اضغط إرسال لتقديمها إلى N8N",
-    receiveAiTranscription: "تلقي النسخ والاستجابة من الذكاء الاصطناعي",
-    receivesTextVoice: "يستقبل الرسائل النصية أو الصوتية",
-    processesAudioTranscription: "يعالج نسخ الصوت عند الحاجة",
-    generatesContextualAi: "يولد ردود ذكاء اصطناعي متسقة",
-    returnsTextAudio: "يرجع ردود نصية أو صوتية",
-    supportsMixedConversation: "يدعم أنواع المحادثات المختلطة",
-    
-    // Quality Options
-    lowQuality: "منخفضة (64kbps)",
-    mediumQuality: "متوسطة (128kbps)",
-    highQuality: "عالية (256kbps)",
+    audioWaveformDisplay: "تصور الموجة الصوتية",
+    n8nBase64Encoding: "ترميز Base64 لـ N8N",
     
     // Voice Chat Interface
     chatAssistant: "مساعد المحادثة",
@@ -1255,7 +1194,7 @@ export const translations: Record<string, Translation> = {
     processing: "معالجة",
     ready: "جاهز",
     stopSpeaking: "إيقاف الكلام",
-    close: "إغلاق",
+    closeVoiceAssistant: "إغلاق",
     youSaid: "قلت",
     startListening: "بدء الاستماع",
     thinking: "أفكر",
@@ -1269,7 +1208,7 @@ export const translations: Record<string, Translation> = {
     tapToRecord: "اضغط للتسجيل",
     failedToProcessVoice: "فشل في معالجة استجابة الرسالة الصوتية",
     failedToSendText: "فشل في إرسال الرسالة النصية",
-    chatWebhookUrl: "الويب هوك:",
+    webhookLabel: "الويب هوك:",
     you: "أنت",
     assistant: "المساعد",
     voiceMessage: "رسالة صوتية"

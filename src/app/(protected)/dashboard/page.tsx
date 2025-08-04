@@ -12,11 +12,7 @@ import {
   Calendar, 
   Mail, 
   DollarSign, 
-  Settings, 
-  LogOut,
   Sun,
-  Cloud,
-  Plus,
   Search,
   BookOpen,
   BarChart3,
@@ -33,7 +29,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { language } = useSettings();
   const { t } = useTranslation(language);
@@ -479,10 +475,6 @@ if (calendarResponse && calendarResponse.ok) {
 
     fetchSocialMediaStats();
   }, []);
-
-  const handleLogout = async () => {
-    await logout();
-  };
 
   const handleGoogleConnect = () => {
     try {

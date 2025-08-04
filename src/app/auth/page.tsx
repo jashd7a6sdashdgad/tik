@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -78,9 +79,11 @@ export default function AuthPage() {
       <div className="w-full py-8 px-4 text-center">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center mb-6">
-            <img 
+            <Image 
               src="/avatar.png" 
               alt={t('personalAssistantAvatar')} 
+              width={96}
+              height={96}
               className="w-24 h-24 rounded-full border-4 border-primary shadow-xl mr-6"
             />
             <div className="text-left">
