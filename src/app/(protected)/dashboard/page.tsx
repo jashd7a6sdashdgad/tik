@@ -156,19 +156,30 @@ export default function DashboardPage() {
           setDataLoadingStatus(prev => ({ ...prev, weather: 'error' }));
         }
 
-        // Process calendar data
-        let todayEvents = [];
-        let allEvents = [];
-        if (calendarResponse && calendarResponse.ok) {
-          try {
-            const calendar = await safeJsonParse(calendarResponse);
-            if (calendar && calendar.success && calendar.data) {
-              allEvents = calendar.data;
-              todayEvents = allEvents.filter(event => {
-                if (!event.start?.dateTime) return false;
-                const eventDate = new Date(event.start.dateTime).toISOString().split('T')[0];
-                return eventDate === today;
-              });
+// Process calendar data
+let todayEvents = [];
+let allEvents = [];
+
+if (calendarResponse && calendarResponse.ok) {
+  try {
+    const calendar = await safeJsonParse(calendarResponse);
+    if (calendar && calendar.success && Array.isArray(calendar.data)) {
+      allEvents = calendar.data;
+
+      todayEvents = allEvents.filter(event => {
+        if (!event.start?.dateTime) return false;
+
+        // Convert event start datetime to ISO date string (YYYY-MM-DD)
+        const eventDate = new Date(event.start.dateTime).toISOString().split('T')[0];
+
+        return eventDate === today; // Assuming `today` is a string like 'YYYY-MM-DD'
+      });
+    }
+  } catch (error) {
+    console.error('Failed to parse calendar response:', error);
+  }
+}
+
               console.log(`✅ Calendar data loaded: ${todayEvents.length} events today, ${allEvents.length} total events`);
               setDataLoadingStatus(prev => ({ ...prev, calendar: 'success' }));
             }
