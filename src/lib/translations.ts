@@ -112,7 +112,7 @@ export const translations: Record<string, Translation> = {
     todayEvents: "Today's Events",
     unreadEmails: "Unread Emails",
     recentExpenses: "Recent Expenses",
-    quickActions: "Quick Actions",
+    mainQuickActions: "Quick Actions",
     loadingDashboard: "Loading dashboard data...",
     
     // URLs and Navigation
@@ -736,7 +736,7 @@ export const translations: Record<string, Translation> = {
     todayEvents: "أحداث اليوم",
     unreadEmails: "رسائل غير مقروءة",
     recentExpenses: "المصروفات الحديثة",
-    quickActions: "إجراءات سريعة",
+    mainQuickActions: "إجراءات سريعة",
     loadingDashboard: "جاري تحميل بيانات لوحة التحكم...",
     
     // URLs and Navigation
