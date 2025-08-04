@@ -294,8 +294,8 @@ export async function POST(request: NextRequest) {
 async function searchVideos(query: string, auth: any) {
   const youtube = google.youtube({ version: 'v3', auth });
   
-  const response = await youtube.search.list({
-    part: ['snippet'],
+  const response = await (youtube.search.list as any)({
+    part: 'snippet',
     q: query,
     maxResults: 10,
     type: 'video'
@@ -319,7 +319,7 @@ async function addComment(videoId: string, text: string, auth: any) {
   const youtube = google.youtube({ version: 'v3', auth });
   
   try {
-    const response = await youtube.commentThreads.insert({
+    const response = await (youtube.commentThreads.insert as any)({
       part: ['snippet'],
       resource: {
         snippet: {

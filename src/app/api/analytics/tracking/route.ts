@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         return await response.json();
       } catch (error) {
         console.error(`API call failed for ${url}:`, error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
       }
     };
 

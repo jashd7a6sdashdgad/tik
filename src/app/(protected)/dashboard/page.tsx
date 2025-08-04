@@ -156,26 +156,32 @@ export default function DashboardPage() {
           setDataLoadingStatus(prev => ({ ...prev, weather: 'error' }));
         }
 
-        // Process calendar data
-        let todayEvents = [];
-        let allEvents = [];
-        if (calendarResponse && calendarResponse.ok) {
-          try {
-            const calendar = await safeJsonParse(calendarResponse);
-            if (calendar && calendar.success && calendar.data) {
-              allEvents = calendar.data;
-              todayEvents = allEvents.filter(event => {
-                if (!event.start?.dateTime) return false;
-                const eventDate = new Date(event.start.dateTime).toISOString().split('T')[0];
-                return eventDate === today;
-              });
-              console.log(`✅ Calendar data loaded: ${todayEvents.length} events today, ${allEvents.length} total events`);
-              setDataLoadingStatus(prev => ({ ...prev, calendar: 'success' }));
-            }
-          } catch (error) {
-            console.log('❌ Failed to parse calendar data:', error);
-            setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
-          }
+// Process calendar data
+let todayEvents: any[] = [];
+let allEvents: any[] = [];
+
+if (calendarResponse && calendarResponse.ok) {
+  try {
+    const calendar = await safeJsonParse(calendarResponse);
+    if (calendar && calendar.success && Array.isArray(calendar.data)) {
+      allEvents = calendar.data;
+
+      todayEvents = allEvents.filter((event: any) => {
+        if (!event.start?.dateTime) return false;
+
+        // Convert event start datetime to ISO date string (YYYY-MM-DD)
+        const eventDate = new Date(event.start.dateTime).toISOString().split('T')[0];
+
+        return eventDate === today; // Assuming `today` is a string like 'YYYY-MM-DD'
+      });
+      
+      console.log(`✅ Calendar data loaded: ${todayEvents.length} events today, ${allEvents.length} total events`);
+      setDataLoadingStatus(prev => ({ ...prev, calendar: 'success' }));
+    }
+  } catch (error) {
+    console.log('❌ Failed to parse calendar data:', error);
+    setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
+  }
         } else if (calendarResponse && calendarResponse.status === 401) {
           console.log('📝 Calendar requires Google authentication');
           setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
@@ -231,13 +237,13 @@ export default function DashboardPage() {
               // The API returns data in format: { success: true, data: { expenses: [...], analytics: {...} } }
               if (expenses.data.expenses && Array.isArray(expenses.data.expenses)) {
                 allExpenses = expenses.data.expenses;
-                todayExpenses = allExpenses.filter(expense => expense.date === today);
+                todayExpenses = allExpenses.filter((expense: any) => expense.date === today);
                 console.log(`✅ Expenses data loaded: ${todayExpenses.length} expenses today, ${allExpenses.length} total`);
                 setDataLoadingStatus(prev => ({ ...prev, expenses: 'success' }));
               } else if (Array.isArray(expenses.data)) {
                 // Fallback for different API response format
                 allExpenses = expenses.data;
-                todayExpenses = allExpenses.filter(expense => expense.date === today);
+                todayExpenses = allExpenses.filter((expense: any) => expense.date === today);
                 console.log(`✅ Expenses data loaded (fallback): ${todayExpenses.length} expenses today, ${allExpenses.length} total`);
                 setDataLoadingStatus(prev => ({ ...prev, expenses: 'success' }));
               } else {
@@ -280,13 +286,13 @@ export default function DashboardPage() {
         let weeklyEventsCount = 0;
         let monthlyEventsCount = 0;
         if (allEvents && Array.isArray(allEvents)) {
-          weeklyEventsCount = allEvents.filter(event => {
+          weeklyEventsCount = allEvents.filter((event: any) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= weekAgo && eventDate <= now;
           }).length;
           
-          monthlyEventsCount = allEvents.filter(event => {
+          monthlyEventsCount = allEvents.filter((event: any) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= monthAgo && eventDate <= now;
@@ -296,31 +302,31 @@ export default function DashboardPage() {
         }
 
         // Expense analytics
-        const monthlyExpenses = Array.isArray(allExpenses) ? allExpenses.filter(expense => {
+        const monthlyExpenses = Array.isArray(allExpenses) ? allExpenses.filter((expense: any) => {
           const expenseDate = new Date(expense.date);
           return expenseDate >= monthAgo && expenseDate <= now;
         }) : [];
 
-        const totalMonthlyExpenses = monthlyExpenses.reduce((sum, exp) => {
-          const creditAmount = parseFloat(exp.creditAmount || 0);
-          const debitAmount = parseFloat(exp.debitAmount || 0);
-          const legacyAmount = parseFloat(exp.amount || 0);
+        const totalMonthlyExpenses = monthlyExpenses.reduce((sum: number, exp: any) => {
+          const creditAmount = parseFloat(String(exp.creditAmount || '0'));
+          const debitAmount = parseFloat(String(exp.debitAmount || '0'));
+          const legacyAmount = parseFloat(String(exp.amount || '0'));
           const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
           return sum + netAmount;
         }, 0);
         
         // Find top expense category
-        const categoryTotals = {};
-        monthlyExpenses.forEach(expense => {
+        const categoryTotals: any = {};
+        monthlyExpenses.forEach((expense: any) => {
           const category = expense.category || 'Other';
-          const creditAmount = parseFloat(expense.creditAmount || 0);
-          const debitAmount = parseFloat(expense.debitAmount || 0);
-          const legacyAmount = parseFloat(expense.amount || 0);
+          const creditAmount = parseFloat(String(expense.creditAmount || '0'));
+          const debitAmount = parseFloat(String(expense.debitAmount || '0'));
+          const legacyAmount = parseFloat(String(expense.amount || '0'));
           const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
           categoryTotals[category] = (categoryTotals[category] || 0) + netAmount;
         });
         
-        const topCategory = Object.keys(categoryTotals).reduce((a, b) => 
+        const topCategory = Object.keys(categoryTotals).reduce((a: string, b: string) => 
           categoryTotals[a] > categoryTotals[b] ? a : b, 'Groceries'
         );
 
@@ -331,7 +337,7 @@ export default function DashboardPage() {
           if (diaryResponse) {
             const diary = await safeJsonParse(diaryResponse);
             if (diary && diary.success && diary.data) {
-              diaryEntriesCount = diary.data.filter(entry => {
+              diaryEntriesCount = diary.data.filter((entry: any) => {
                 const entryDate = new Date(entry.date);
                 return entryDate >= monthAgo && entryDate <= now;
               }).length;
@@ -515,7 +521,7 @@ export default function DashboardPage() {
                       : 'bg-yellow-500'
                   }`}></div>
                   <span className="text-sm text-gray-600">
-                    {Object.values(dataLoadingStatus).filter(status => status === 'success').length}/4 {t('dataSourcesConnected')}
+                    {Object.values(dataLoadingStatus).filter((status: string) => status === 'success').length}/4 {t('dataSourcesConnected')}
                   </span>
                 </div>
               )}
@@ -620,10 +626,10 @@ export default function DashboardPage() {
                     <div className="animate-pulse bg-gray-300 h-8 w-24 rounded"></div>
                   ) : (
                     <p className="text-2xl font-bold text-primary">
-                      {(dashboardData.allExpenses || []).reduce((sum, exp) => {
-                        const creditAmount = parseFloat(exp.creditAmount || 0);
-                        const debitAmount = parseFloat(exp.debitAmount || 0);
-                        const legacyAmount = parseFloat(exp.amount || 0);
+                      {(dashboardData.allExpenses || []).reduce((sum: number, exp: any) => {
+                        const creditAmount = parseFloat(String(exp.creditAmount || '0'));
+                        const debitAmount = parseFloat(String(exp.debitAmount || '0'));
+                        const legacyAmount = parseFloat(String(exp.amount || '0'));
                         const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
                         return sum + netAmount;
                       }, 0).toFixed(2)} OMR
@@ -715,10 +721,10 @@ export default function DashboardPage() {
                 {(dashboardData.allEvents || []).length > 0 ? (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {(dashboardData.allEvents || [])
-                      .filter(event => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
-                      .sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
+                      .filter((event: any) => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
+                      .sort((a: any, b: any) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
                       .slice(0, 10)
-                      .map((event) => (
+                      .map((event: any) => (
                       <div key={event.id} className="flex items-center p-3 bg-muted rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium text-black">{event.summary}</h4>
@@ -763,9 +769,9 @@ export default function DashboardPage() {
                         </div>
                         <span className="font-bold text-accent">
                           {(() => {
-                            const creditAmount = parseFloat(expense.creditAmount || 0);
-                            const debitAmount = parseFloat(expense.debitAmount || 0);
-                            const legacyAmount = parseFloat(expense.amount || 0);
+                            const creditAmount = parseFloat(String(expense.creditAmount || '0'));
+                            const debitAmount = parseFloat(String(expense.debitAmount || '0'));
+                            const legacyAmount = parseFloat(String(expense.amount || '0'));
                             const netAmount = (creditAmount || debitAmount) ? (debitAmount - creditAmount) : legacyAmount;
                             return netAmount.toFixed(2);
                           })()} OMR

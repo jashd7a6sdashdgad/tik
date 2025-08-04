@@ -6,10 +6,15 @@ interface EnvConfig {
   FACEBOOK_PAGE_ACCESS_TOKEN?: string;
   FACEBOOK_PAGE_ID?: string;
   
+  // Messenger (uses same Facebook credentials)
+  MESSENGER_PAGE_ACCESS_TOKEN?: string;
+  MESSENGER_PAGE_ID?: string;
+  
   // Google OAuth (includes YouTube access)
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URI?: string;
+  GOOGLE_REDIRECT_URI_SERVER?: string;
   
   // N8N Integration
   N8N_WEBHOOK_URL?: string;
@@ -33,9 +38,12 @@ export function validateAndLogEnvVars(): EnvConfig {
   const envVars: EnvConfig = {
     FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN,
     FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID,
+    MESSENGER_PAGE_ACCESS_TOKEN: process.env.MESSENGER_PAGE_ACCESS_TOKEN,
+    MESSENGER_PAGE_ID: process.env.MESSENGER_PAGE_ID,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+    GOOGLE_REDIRECT_URI_SERVER: process.env.GOOGLE_REDIRECT_URI_SERVER,
     N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL,
     JWT_SECRET: process.env.JWT_SECRET,
   };
@@ -176,7 +184,7 @@ export async function testAPIConnectivity() {
       console.log('  ℹ️  Webhook connectivity will be tested when used');
       console.log(`  🌐 Target: ${envVars.N8N_WEBHOOK_URL.substring(0, 50)}...`);
     } catch (error) {
-      console.error('  ❌ N8N webhook URL format is invalid:', error.message);
+      console.error('  ❌ N8N webhook URL format is invalid:', (error as any).message);
     }
   } else {
     console.log('  ⏭️  Skipping N8N webhook test (URL not configured)');

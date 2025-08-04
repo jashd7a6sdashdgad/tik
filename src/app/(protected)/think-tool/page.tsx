@@ -242,7 +242,7 @@ export default function ThinkToolPage() {
         console.log('N8n thinking webhook called successfully:', result);
         
         // Remove the processing message first
-        setMessages(prev => prev.filter(msg => !msg.content.includes('🤔 Processing your thought')));
+        setMessages(prev => prev.filter(msg => !msg.content?.includes('🤔 Processing your thought')));
         
         // Always try to get response from n8n data
         if (result.data && result.data.response) {
@@ -258,7 +258,7 @@ export default function ThinkToolPage() {
       } else {
         console.warn('N8n thinking webhook failed:', result.message);
         // Remove the processing message
-        setMessages(prev => prev.filter(msg => !msg.content.includes('🤔 Processing your thought')));
+        setMessages(prev => prev.filter(msg => !msg.content?.includes('🤔 Processing your thought')));
         
         // Even if failed, check if there's a response message
         if (result.data && result.data.response) {
@@ -272,7 +272,7 @@ export default function ThinkToolPage() {
     } catch (error) {
       console.error('Error calling n8n thinking webhook:', error);
       // Remove the processing message
-      setMessages(prev => prev.filter(msg => !msg.content.includes('🤔 Processing your thought')));
+      setMessages(prev => prev.filter(msg => !msg.content?.includes('🤔 Processing your thought')));
     }
     
     // Only show a response if n8n didn't provide one
@@ -528,7 +528,6 @@ export default function ThinkToolPage() {
                     message={{
                       id: message.id,
                       type: message.type === 'user' ? 'sent' : 'received',
-                      messageType: 'voice',
                       transcription: message.transcription || message.content,
                       aiResponse: message.aiResponse,
                       duration: message.duration || 0,

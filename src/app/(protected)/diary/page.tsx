@@ -400,7 +400,7 @@ export default function DiaryPage() {
               const entryDate = entry.date || new Date().toISOString().split('T')[0];
               const entryContent = entry.content || 'No content';
               const entryMood = entry.mood || 'neutral';
-              const entryTags = entry.tags ? (typeof entry.tags === 'string' ? entry.tags.split(',').filter(t => t.trim()) : entry.tags) : [];
+              const entryTags = entry.tags ? (typeof entry.tags === 'string' ? (entry.tags as string).split(',').filter((t: string) => t.trim()) : entry.tags) : [];
               
               return (
                 <Card key={entry.id} className="hover:shadow-lg transition-shadow">

@@ -71,8 +71,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
           'User-Agent': 'Mahboob-Personal-Assistant/1.0'
         },
-        body: JSON.stringify(n8nPayload),
-        timeout: 30000 // 30 second timeout
+        body: JSON.stringify(n8nPayload)
       });
 
       if (!n8nResponse.ok) {
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
 
       if (n8nData.success) {
         // Handle binary audio response from N8N
-        let audioUrl = null;
+        let audioUrl: string | null = null;
         
         if (n8nData.audioBase64) {
           console.log('🎵 Processing binary audio response from N8N');
