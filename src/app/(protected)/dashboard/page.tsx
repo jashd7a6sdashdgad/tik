@@ -157,8 +157,8 @@ export default function DashboardPage() {
         }
 
 // Process calendar data
-let todayEvents = [];
-let allEvents = [];
+let todayEvents: any[] = [];
+let allEvents: any[] = [];
 
 if (calendarResponse && calendarResponse.ok) {
   try {
@@ -166,7 +166,7 @@ if (calendarResponse && calendarResponse.ok) {
     if (calendar && calendar.success && Array.isArray(calendar.data)) {
       allEvents = calendar.data;
 
-      todayEvents = allEvents.filter(event => {
+      todayEvents = allEvents.filter((event: any) => {
         if (!event.start?.dateTime) return false;
 
         // Convert event start datetime to ISO date string (YYYY-MM-DD)
@@ -174,19 +174,14 @@ if (calendarResponse && calendarResponse.ok) {
 
         return eventDate === today; // Assuming `today` is a string like 'YYYY-MM-DD'
       });
+      
+      console.log(`✅ Calendar data loaded: ${todayEvents.length} events today, ${allEvents.length} total events`);
+      setDataLoadingStatus(prev => ({ ...prev, calendar: 'success' }));
     }
   } catch (error) {
-    console.error('Failed to parse calendar response:', error);
+    console.log('❌ Failed to parse calendar data:', error);
+    setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
   }
-}
-
-              console.log(`✅ Calendar data loaded: ${todayEvents.length} events today, ${allEvents.length} total events`);
-              setDataLoadingStatus(prev => ({ ...prev, calendar: 'success' }));
-            }
-          } catch (error) {
-            console.log('❌ Failed to parse calendar data:', error);
-            setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
-          }
         } else if (calendarResponse && calendarResponse.status === 401) {
           console.log('📝 Calendar requires Google authentication');
           setDataLoadingStatus(prev => ({ ...prev, calendar: 'auth_required' }));
@@ -242,13 +237,13 @@ if (calendarResponse && calendarResponse.ok) {
               // The API returns data in format: { success: true, data: { expenses: [...], analytics: {...} } }
               if (expenses.data.expenses && Array.isArray(expenses.data.expenses)) {
                 allExpenses = expenses.data.expenses;
-                todayExpenses = allExpenses.filter(expense => expense.date === today);
+                todayExpenses = allExpenses.filter((expense: any) => expense.date === today);
                 console.log(`✅ Expenses data loaded: ${todayExpenses.length} expenses today, ${allExpenses.length} total`);
                 setDataLoadingStatus(prev => ({ ...prev, expenses: 'success' }));
               } else if (Array.isArray(expenses.data)) {
                 // Fallback for different API response format
                 allExpenses = expenses.data;
-                todayExpenses = allExpenses.filter(expense => expense.date === today);
+                todayExpenses = allExpenses.filter((expense: any) => expense.date === today);
                 console.log(`✅ Expenses data loaded (fallback): ${todayExpenses.length} expenses today, ${allExpenses.length} total`);
                 setDataLoadingStatus(prev => ({ ...prev, expenses: 'success' }));
               } else {
