@@ -28,6 +28,13 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+interface CalendarEvent {
+  start?: {
+    dateTime?: string;
+  };
+  [key: string]: any;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -162,8 +169,8 @@ if (calendarResponse && calendarResponse.ok) {
     if (calendar && calendar.success && Array.isArray(calendar.data)) {
       allEvents = calendar.data;
 
-      todayEvents = allEvents.filter((event: any) => {
-        if (!event.start?.dateTime) return false;
+      todayEvents = allEvents.filter((event: CalendarEvent) => {
+        if (!event?.start?.dateTime) return false;
 
         // Convert event start datetime to ISO date string (YYYY-MM-DD)
         const eventDate = new Date(event.start.dateTime).toISOString().split('T')[0];
@@ -282,13 +289,13 @@ if (calendarResponse && calendarResponse.ok) {
         let weeklyEventsCount = 0;
         let monthlyEventsCount = 0;
         if (allEvents && Array.isArray(allEvents)) {
-          weeklyEventsCount = allEvents.filter((event: any) => {
+          weeklyEventsCount = allEvents.filter((event: CalendarEvent) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= weekAgo && eventDate <= now;
           }).length;
           
-          monthlyEventsCount = allEvents.filter((event: any) => {
+          monthlyEventsCount = allEvents.filter((event: CalendarEvent) => {
             if (!event.start?.dateTime) return false;
             const eventDate = new Date(event.start.dateTime);
             return eventDate >= monthAgo && eventDate <= now;
@@ -713,7 +720,7 @@ if (calendarResponse && calendarResponse.ok) {
                 {(dashboardData.allEvents || []).length > 0 ? (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {(dashboardData.allEvents || [])
-                      .filter((event: any) => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
+                      .filter((event: CalendarEvent) => event.start?.dateTime && new Date(event.start.dateTime) >= new Date())
                       .sort((a: any, b: any) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
                       .slice(0, 10)
                       .map((event: any) => (
