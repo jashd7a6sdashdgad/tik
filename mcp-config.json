@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "mcp-server-firecrawl": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-5060f22245974d5db9f8642249f45f84"
+      }
+    },
+    "facebook": {
+      "command": "npx",
+      "args": ["-y", "facebook-mcp-server"],
+      "env": {
+        "FACEBOOK_PAGE_ACCESS_TOKEN": "EAARijwN4WjIBPAQzKQg9hOIqoFCEbm76Gkt1Cw4HpMs46KKXLGESo6KiCfrU0EWSXQWBtfRIbLjDqB0GdBfyISq9w1iLpwJj1qwOTmNzlL0mZAVpFZCpZCsJ1jVy2gLBH2cSPZBIDwuOFRreSC59zXg7ZALl8yxC3EqcQoCwOwM62guxJDa22WKadUBjhSICOqPQKAZA0h3ZAehOqUDE4GRcaPYLQQkNwzuL5tY",
+        "FACEBOOK_PAGE_ID": "24348229751467111"
+      }
+    },
+    "youtube": {
+      "command": "npx",
+      "args": ["-y", "youtube-mcp-server"],
+      "env": {
+        "YOUTUBE_API_KEY": "your-youtube-api-key-here",
+        "YOUTUBE_CHANNEL_ID": "your-youtube-channel-id-here"
+      }
+    }
+  }
+}

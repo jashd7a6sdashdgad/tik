@@ -1,0 +1,536 @@
+@import "tailwindcss";
+
+:root {
+  /* Custom color palette */
+  --primary: #3D74B6;       /* Blue */
+  --background: #FBF5DE;     /* Cream */
+  --secondary: #EAC8A6;      /* Tan */
+  --accent: #DC3C22;         /* Red */
+  --foreground: #1a1a1a;
+  
+  /* Derived colors */
+  --primary-foreground: #ffffff;
+  --secondary-foreground: #1a1a1a;
+  --accent-foreground: #ffffff;
+  --background-foreground: #1a1a1a;
+  
+  /* UI colors using palette */
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --border: var(--secondary);
+  --input: var(--background);
+  --ring: var(--primary);
+  --muted: var(--secondary);
+  --muted-foreground: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+[data-theme="dark"] {
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --card: #2a2a2a;
+  --card-foreground: #ffffff;
+  --border: #404040;
+  --input: #2a2a2a;
+  --muted: #262626;
+  --muted-foreground: #a1a1aa;
+}
+
+/* Color scheme variants */
+[data-color-scheme="blue"] {
+  --primary: #2563eb;           /* Blue 600 */
+  --secondary: #dbeafe;         /* Blue 100 */
+  --accent: #dc2626;            /* Red 600 */
+  --background: #eff6ff;        /* Blue 50 */
+}
+
+[data-color-scheme="green"] {
+  --primary: #16a34a;           /* Green 600 */
+  --secondary: #dcfce7;         /* Green 100 */
+  --accent: #dc2626;            /* Red 600 */
+  --background: #f0fdf4;        /* Green 50 */
+}
+
+[data-color-scheme="default"] {
+  --primary: #3D74B6;           /* Original blue */
+  --secondary: #EAC8A6;         /* Original tan */
+  --accent: #DC3C22;            /* Original red */
+  --background: #FBF5DE;        /* Original cream */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a1a;
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+/* Glassmorphism effects with custom palette */
+.glass {
+  background: rgba(251, 245, 222, 0.8); /* Background color with transparency */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(61, 116, 182, 0.3); /* Primary color border */
+}
+
+.glass-dark {
+  background: rgba(234, 200, 166, 0.3); /* Secondary color with transparency */
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(220, 60, 34, 0.3); /* Accent color border */
+}
+
+/* Smooth animations */
+.smooth-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Loading animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Voice input animation */
+@keyframes voice-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+.voice-active {
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+/* Custom color utilities */
+.bg-primary { background-color: var(--primary); }
+.bg-secondary { background-color: var(--secondary); }
+.bg-accent { background-color: var(--accent); }
+.bg-background { background-color: var(--background); }
+
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-accent { color: var(--accent); }
+.text-background { color: var(--background); }
+
+.border-primary { border-color: var(--primary); }
+.border-secondary { border-color: var(--secondary); }
+.border-accent { border-color: var(--accent); }
+
+/* Color combinations for better readability */
+.primary-button {
+  background-color: var(--primary);
+  color: white;
+  border: 1px solid var(--primary);
+}
+
+.secondary-button {
+  background-color: var(--secondary);
+  color: black;
+  border: 1px solid var(--secondary);
+}
+
+.accent-button {
+  background-color: var(--accent);
+  color: white;
+  border: 1px solid var(--accent);
+}
+
+/* Card styling with palette and enhanced shadows */
+.palette-card {
+  background: white;
+  border: 2px solid var(--secondary);
+  box-shadow: 0 4px 6px rgba(61, 116, 182, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Light shadow utilities */
+.shadow-light {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-light-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-light-lg {
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Hover shadow effects */
+.shadow-hover {
+  transition: box-shadow 0.3s ease;
+}
+
+.shadow-hover:hover {
+  box-shadow: 0 8px 25px rgba(61, 116, 182, 0.15), 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Enhanced 3D palette cards with hover effects */
+.palette-card-hover {
+  background: white;
+  border: 2px solid var(--secondary);
+  box-shadow: 
+    0 8px 16px rgba(128, 128, 128, 0.15),
+    0 4px 8px rgba(128, 128, 128, 0.12),
+    0 2px 4px rgba(128, 128, 128, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: translateZ(0);
+  border-radius: 12px;
+  position: relative;
+}
+
+.palette-card-hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(128, 128, 128, 0.05) 0%, rgba(160, 160, 160, 0.05) 100%);
+  border-radius: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.palette-card-hover:hover {
+  box-shadow: 
+    0 20px 40px rgba(128, 128, 128, 0.25),
+    0 12px 24px rgba(128, 128, 128, 0.18),
+    0 6px 12px rgba(128, 128, 128, 0.12),
+    0 2px 4px rgba(128, 128, 128, 0.08);
+  transform: translateY(-8px) translateZ(0) scale(1.02);
+  border-color: var(--primary);
+}
+
+.palette-card-hover:hover::before {
+  opacity: 1;
+}
+
+/* Additional 3D card variations */
+.card-3d {
+  background: white;
+  border: 2px solid var(--secondary);
+  box-shadow: 
+    0 8px 16px rgba(128, 128, 128, 0.15),
+    0 4px 8px rgba(128, 128, 128, 0.12),
+    0 2px 4px rgba(128, 128, 128, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: translateZ(0);
+  border-radius: 12px;
+  position: relative;
+}
+
+.card-3d:hover {
+  box-shadow: 
+    0 20px 40px rgba(128, 128, 128, 0.25),
+    0 12px 24px rgba(128, 128, 128, 0.18),
+    0 6px 12px rgba(128, 128, 128, 0.12),
+    0 2px 4px rgba(128, 128, 128, 0.08);
+  transform: translateY(-8px) translateZ(0) scale(1.02);
+  border-color: var(--primary);
+}
+
+/* Custom navigation hover effects */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
+}
+
+.scale-105 {
+  transform: scale(1.05);
+}
+
+.hover\:translate-x-1:hover {
+  transform: translateX(0.25rem);
+}
+
+.group:hover .group-hover\:translate-x-1 {
+  transform: translateX(0.25rem);
+}
+
+.group:hover .group-hover\:rotate-3 {
+  transform: rotate(3deg);
+}
+
+.transform.rotate-3 {
+  transform: rotate(3deg);
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(0.5rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.5rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(0.75rem * var(--tw-space-x-reverse));
+  margin-left: calc(0.75rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(1rem * var(--tw-space-x-reverse));
+  margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
+}
+
+[dir="rtl"] .ml-2 {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .mr-2 {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .ml-3 {
+  margin-right: 0.75rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .mr-3 {
+  margin-left: 0.75rem;
+  margin-right: 0;
+}
+
+[dir="rtl"] .pl-4 {
+  padding-right: 1rem;
+  padding-left: 0;
+}
+
+[dir="rtl"] .pr-4 {
+  padding-left: 1rem;
+  padding-right: 0;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* RTL-specific font for Arabic */
+[dir="rtl"] * {
+  font-family: var(--font-noto-arabic), 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Ensure proper font fallback for Arabic text */
+[dir="rtl"] body {
+  font-family: var(--font-noto-arabic), 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Improve Arabic text rendering */
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3, [dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6 {
+  font-family: var(--font-noto-arabic), 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+[dir="rtl"] p, [dir="rtl"] span, [dir="rtl"] div, [dir="rtl"] button {
+  font-family: var(--font-noto-arabic), 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
+  line-height: 1.6;
+}
+
+/* RTL Navigation adjustments */
+[dir="rtl"] .nav-item {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .nav-item .icon {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Additional RTL Support for better layout */
+[dir="rtl"] .justify-between {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .items-start {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-1 {
+  text-align: right;
+}
+
+/* RTL Support for common margin/padding classes */
+[dir="rtl"] .ml-1 { margin-right: 0.25rem; margin-left: 0; }
+[dir="rtl"] .mr-1 { margin-left: 0.25rem; margin-right: 0; }
+[dir="rtl"] .ml-4 { margin-right: 1rem; margin-left: 0; }
+[dir="rtl"] .mr-4 { margin-left: 1rem; margin-right: 0; }
+[dir="rtl"] .ml-6 { margin-right: 1.5rem; margin-left: 0; }
+[dir="rtl"] .mr-6 { margin-left: 1.5rem; margin-right: 0; }
+[dir="rtl"] .ml-8 { margin-right: 2rem; margin-left: 0; }
+[dir="rtl"] .mr-8 { margin-left: 2rem; margin-right: 0; }
+
+[dir="rtl"] .pl-1 { padding-right: 0.25rem; padding-left: 0; }
+[dir="rtl"] .pr-1 { padding-left: 0.25rem; padding-right: 0; }
+[dir="rtl"] .pl-2 { padding-right: 0.5rem; padding-left: 0; }
+[dir="rtl"] .pr-2 { padding-left: 0.5rem; padding-right: 0; }
+[dir="rtl"] .pl-3 { padding-right: 0.75rem; padding-left: 0; }
+[dir="rtl"] .pr-3 { padding-left: 0.75rem; padding-right: 0; }
+[dir="rtl"] .pl-6 { padding-right: 1.5rem; padding-left: 0; }
+[dir="rtl"] .pr-6 { padding-left: 1.5rem; padding-right: 0; }
+[dir="rtl"] .pl-8 { padding-right: 2rem; padding-left: 0; }
+[dir="rtl"] .pr-8 { padding-left: 2rem; padding-right: 0; }
+
+/* RTL Positioning */
+[dir="rtl"] .left-0 { right: 0; left: auto; }
+[dir="rtl"] .right-0 { left: 0; right: auto; }
+[dir="rtl"] .left-4 { right: 1rem; left: auto; }
+[dir="rtl"] .right-4 { left: 1rem; right: auto; }
+
+/* RTL Border Radius */
+[dir="rtl"] .rounded-l-lg { border-radius: 0 0.5rem 0.5rem 0; }
+[dir="rtl"] .rounded-r-lg { border-radius: 0.5rem 0 0 0.5rem; }
+
+/* RTL Transform */
+[dir="rtl"] .rotate-180 { transform: rotate(0deg); }
+
+/* RTL specific fixes for cards and forms */
+[dir="rtl"] .card-3d {
+  text-align: right;
+}
+
+[dir="rtl"] input, [dir="rtl"] textarea, [dir="rtl"] select {
+  text-align: right;
+}
+
+[dir="rtl"] input[type="email"], [dir="rtl"] input[type="url"] {
+  text-align: left; /* Keep URLs and emails left-aligned */
+  direction: ltr;
+}
+
+/* Additional RTL fixes for better Arabic support */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .justify-start {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .justify-end {
+  justify-content: flex-start;
+}
+
+[dir="rtl"] .items-start {
+  align-items: flex-end;
+}
+
+[dir="rtl"] .items-end {
+  align-items: flex-start;
+}
+
+/* RTL specific grid and flexbox adjustments */
+[dir="rtl"] .grid {
+  direction: rtl;
+}
+
+[dir="rtl"] .gap-x-2 > :not([hidden]) ~ :not([hidden]) {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .gap-x-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-right: 0.75rem;
+  margin-left: 0;
+}
+
+[dir="rtl"] .gap-x-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-right: 1rem;
+  margin-left: 0;
+}
+
+/* Better Arabic text selection */
+[dir="rtl"] ::selection {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Improved Arabic line height and letter spacing */
+[dir="rtl"] {
+  letter-spacing: 0.01em;
+  word-spacing: 0.05em;
+}
+
+/* RTL scrollbar positioning */
+[dir="rtl"] ::-webkit-scrollbar {
+  left: 0;
+  right: auto;
+}
