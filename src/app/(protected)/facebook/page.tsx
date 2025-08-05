@@ -133,6 +133,67 @@ export default function FacebookPage() {
     }
   };
 
+  const testFacebookToken = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔍 Testing Facebook token...');
+      
+      // Test the token directly with Facebook Graph API
+      const response = await fetch('/api/facebook?action=test_token');
+      const data = await response.json();
+      
+      console.log('🔍 Facebook token test response:', data);
+      
+      if (data.success) {
+        console.log('✅ Facebook token is valid');
+        setConnectionStatus('connected');
+        setError(null);
+      } else {
+        console.log('❌ Facebook token test failed:', data.error);
+        setConnectionStatus('error');
+        setError(data.error || 'Token validation failed');
+      }
+    } catch (error: any) {
+      console.error('❌ Facebook token test error:', error);
+      setConnectionStatus('error');
+      setError(`Token test failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const debugFacebookAPI = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log('🔧 Running comprehensive Facebook API debug...');
+      
+      const response = await fetch('/api/facebook-debug');
+      const data = await response.json();
+      
+      console.log('🔧 Facebook API debug results:', data);
+      
+      if (data.success) {
+        console.log('✅ Facebook API debug completed successfully');
+        setConnectionStatus('connected');
+        setError(`✅ Debug Complete: ${data.summary}. Check console for details.`);
+      } else {
+        console.log('❌ Facebook API debug found issues:', data);
+        setConnectionStatus('error');
+        setError(`❌ Debug Failed: ${data.error || 'Unknown error'}. Check console for details.`);
+      }
+    } catch (error: any) {
+      console.error('❌ Facebook API debug error:', error);
+      setConnectionStatus('error');
+      setError(`Debug failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const connectFacebook = async () => {
     setIsLoading(true);
     setError(null);
@@ -216,6 +277,12 @@ export default function FacebookPage() {
             </Button>
             <Button onClick={validateToken} disabled={isLoading} variant="outline">
               🔍 Validate Token
+            </Button>
+            <Button onClick={testFacebookToken} disabled={isLoading} variant="outline">
+              🚀 Test Token
+            </Button>
+            <Button onClick={debugFacebookAPI} disabled={isLoading} variant="outline">
+              🔧 Debug API
             </Button>
           </div>
         </div>

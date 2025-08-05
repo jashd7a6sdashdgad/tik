@@ -25,8 +25,18 @@ import {
   MessageCircle,
   Briefcase,
   Building2,
-  ArrowRight
+  ArrowRight,
+  Brain,
+  Zap,
+  TrendingUp
 } from 'lucide-react';
+
+// Import new smart components
+import SmartInsights from '@/components/SmartInsights';
+import UnifiedStats from '@/components/UnifiedStats';
+import SmartNotifications from '@/components/SmartNotifications';
+import SmartQuickActions from '@/components/SmartQuickActions';
+import ActivityTimeline from '@/components/ActivityTimeline';
 
 interface CalendarEvent {
   start?: {
@@ -501,7 +511,13 @@ if (calendarResponse && calendarResponse.ok) {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-black">{t('dashboard')}</h1>
+            <div className="flex items-center gap-3">
+              <Brain className="h-8 w-8 text-purple-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-black">Smart Dashboard</h1>
+                <p className="text-sm text-muted-foreground">AI-powered insights and unified control</p>
+              </div>
+            </div>
             <div className="flex items-center space-x-4 mt-2">
               <p className="text-black">{t('welcomeBack', { username: user?.username || '' })}</p>
               {isLoading ? (
@@ -559,8 +575,44 @@ if (calendarResponse && calendarResponse.ok) {
             </div>
           </div>
         </div>
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Smart Dashboard Header */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* AI Insights */}
+          <SmartInsights 
+            dashboardData={dashboardData} 
+            weeklyStats={weeklyStats}
+            className="lg:col-span-2"
+          />
+          
+          {/* Smart Notifications */}
+          <SmartNotifications 
+            dashboardData={dashboardData}
+          />
+        </div>
+
+        {/* Unified Stats */}
+        <div className="mb-8">
+          <UnifiedStats
+            dashboardData={dashboardData}
+            weeklyStats={weeklyStats}
+            socialMediaStats={socialMediaStats}
+          />
+        </div>
+
+        {/* Smart Actions and Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <SmartQuickActions
+            dashboardData={dashboardData}
+            weeklyStats={weeklyStats}
+          />
+          
+          <ActivityTimeline
+            dashboardData={dashboardData}
+          />
+        </div>
+
+        {/* Legacy Quick Stats (Hidden) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" style={{ display: 'none' }}>
           <Card className="palette-card-hover shadow-light-md">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">

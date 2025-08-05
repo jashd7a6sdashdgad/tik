@@ -3,6 +3,7 @@
 import { Navigation } from '@/components/Navigation';
 import { AuthGuard } from '@/components/AuthGuard';
 import { VoiceAssistant } from '@/components/VoiceAssistant';
+import VoiceNarratorWidget from '@/components/VoiceNarratorWidget';
 import { useTheme } from '@/hooks/useTheme';
 
 function ProtectedLayoutContent({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ function ProtectedLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <VoiceAssistant />
+      <VoiceNarratorWidget />
     </div>
   );
 }

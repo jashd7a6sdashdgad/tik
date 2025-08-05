@@ -377,6 +377,186 @@ export class YouTube {
   }
 }
 
+// Google Drive API
+export class GoogleDrive {
+  private drive: any;
+
+  constructor(auth: any) {
+    this.drive = google.drive({ version: 'v3', auth });
+  }
+
+  async listFiles(query = '', maxResults = 100, orderBy = 'createdTime desc') {
+    const response = await this.drive.files.list({
+      q: query,
+      pageSize: maxResults,
+      fields: 'nextPageToken, files(id, name, size, mimeType, createdTime, modifiedTime, parents, webViewLink, webContentLink, thumbnailLink)',
+      orderBy
+    });
+    return response.data.files || [];
+  }
+
+  async listPhotos(folderId?: string, maxResults = 100) {
+    let query = "mimeType contains 'image/'";
+    if (folderId) {
+      query += ` and parents in '${folderId}'`;
+    }
+    return this.listFiles(query, maxResults);
+  }
+
+  async uploadPhoto(fileName: string, mimeType: string, buffer: Buffer, folderId?: string) {
+    console.log('🚀 Starting Google Drive upload:', {
+      fileName,
+      mimeType,
+      bufferSize: buffer.length,
+      folderId
+    });
+
+    const fileMetadata: any = {
+      name: fileName,
+    };
+    
+    if (folderId) {
+      fileMetadata.parents = [folderId];
+    }
+
+    const media = {
+      mimeType,
+      body: buffer,
+    };
+
+    console.log('📤 Calling Google Drive API with:', {
+      metadata: fileMetadata,
+      mediaType: mimeType,
+      bodySize: buffer.length
+    });
+
+    try {
+      const response = await this.drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink, thumbnailLink',
+      });
+
+      console.log('✅ Google Drive API response:', {
+        id: response.data.id,
+        name: response.data.name,
+        size: response.data.size
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Google Drive API error:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        response: error.response?.data
+      });
+      throw error;
+    }
+  }
+
+  async deleteFile(fileId: string) {
+    const response = await this.drive.files.delete({
+      fileId,
+    });
+    return response.data;
+  }
+
+  async createFolder(name: string, parentId?: string) {
+    const fileMetadata: any = {
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+    };
+    
+    if (parentId) {
+      fileMetadata.parents = [parentId];
+    }
+
+    const response = await this.drive.files.create({
+      resource: fileMetadata,
+      fields: 'id, name, createdTime, webViewLink',
+    });
+
+    return response.data;
+  }
+
+  async getFileMetadata(fileId: string) {
+    const response = await this.drive.files.get({
+      fileId,
+      fields: 'id, name, size, mimeType, createdTime, modifiedTime, parents, webViewLink, webContentLink, thumbnailLink',
+    });
+    return response.data;
+  }
+
+  async downloadFile(fileId: string) {
+    const response = await this.drive.files.get({
+      fileId,
+      alt: 'media',
+    });
+    return response.data;
+  }
+
+  async updateFile(fileId: string, fileName?: string, buffer?: Buffer, mimeType?: string) {
+    const fileMetadata: any = {};
+    if (fileName) {
+      fileMetadata.name = fileName;
+    }
+
+    const media = buffer ? {
+      mimeType,
+      body: buffer,
+    } : undefined;
+
+    const response = await this.drive.files.update({
+      fileId,
+      resource: fileMetadata,
+      media,
+      fields: 'id, name, size, mimeType, modifiedTime, webViewLink, webContentLink, thumbnailLink',
+    });
+
+    return response.data;
+  }
+
+  async shareFile(fileId: string, role = 'reader', type = 'anyone') {
+    const response = await this.drive.permissions.create({
+      fileId,
+      resource: {
+        role,
+        type,
+      },
+    });
+    return response.data;
+  }
+
+  async getFolderContents(folderId: string) {
+    return this.listFiles(`parents in '${folderId}'`);
+  }
+
+  // Create or find the photos folder (configurable via environment)
+  async getOrCreatePhotosFolder() {
+    const folderName = process.env.GOOGLE_DRIVE_PHOTOS_FOLDER || 'Personal Assistant Photos';
+    const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+    
+    // Build search query
+    let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder'`;
+    if (parentFolderId) {
+      query += ` and parents in '${parentFolderId}'`;
+    }
+    
+    // First, try to find existing folder
+    const existingFolders = await this.listFiles(query);
+    
+    if (existingFolders.length > 0) {
+      console.log(`📁 Found existing photos folder: ${folderName}`);
+      return existingFolders[0];
+    }
+    
+    // Create new folder if it doesn't exist
+    console.log(`📁 Creating new photos folder: ${folderName}`);
+    return this.createFolder(folderName, parentFolderId);
+  }
+}
+
 // Helper function to refresh tokens
 export async function refreshAccessToken(refreshToken: string) {
   const oauth2Client = getOAuth2Client();

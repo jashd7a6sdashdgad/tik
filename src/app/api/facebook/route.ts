@@ -23,7 +23,7 @@ function isFacebookTokenInvalid(errorMessage: string): boolean {
 }
 
 interface FacebookPostRequest {
-  action: 'post' | 'get_posts' | 'get_insights' | 'get_page_info';
+  action: 'post' | 'get_posts' | 'get_insights' | 'get_page_info' | 'test_token';
   message?: string;
   link?: string;
   scheduled_publish_time?: number;
@@ -130,9 +130,32 @@ export async function POST(request: NextRequest) {
         );
         break;
         
+      case 'test_token':
+        // Test the access token validity by getting basic page info
+        console.log('🔍 Testing Facebook token validity...');
+        console.log(`🔍 Page ID: ${FACEBOOK_PAGE_ID}`);
+        console.log(`🔍 Token (first 20 chars): ${FACEBOOK_PAGE_ACCESS_TOKEN?.substring(0, 20)}...`);
+        
+        facebookResponse = await fetch(
+          `${FACEBOOK_API_URL}/${FACEBOOK_PAGE_ID}?fields=id,name,access_token&access_token=${FACEBOOK_PAGE_ACCESS_TOKEN}`
+        );
+        
+        // Log the response for debugging
+        const testResult = await facebookResponse.text();
+        console.log('🔍 Facebook test response status:', facebookResponse.status);
+        console.log('🔍 Facebook test response:', testResult);
+        
+        // Re-create response for further processing
+        facebookResponse = new Response(testResult, {
+          status: facebookResponse.status,
+          statusText: facebookResponse.statusText,
+          headers: facebookResponse.headers
+        });
+        break;
+        
       default:
         return NextResponse.json(
-          { success: false, message: 'Invalid action. Use post, get_posts, get_insights, or get_page_info' },
+          { success: false, message: 'Invalid action. Use post, get_posts, get_insights, get_page_info, or test_token' },
           { status: 400 }
         );
     }

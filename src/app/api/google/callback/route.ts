@@ -6,27 +6,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const state = searchParams.get('state'); // Can contain redirect info
 
     if (error) {
+      const redirectPath = state || '/settings';
       return NextResponse.redirect(
-        new URL(`/settings?error=${encodeURIComponent(error)}`, request.url)
+        new URL(`${redirectPath}?error=${encodeURIComponent(error)}`, request.url)
       );
     }
 
     if (!code) {
+      const redirectPath = state || '/settings';
       return NextResponse.redirect(
-        new URL('/settings?error=No authorization code received', request.url)
+        new URL(`${redirectPath}?error=No authorization code received`, request.url)
       );
     }
 
     // Exchange code for tokens
     const tokens = await getTokensFromCode(code);
+    console.log('🔑 Google OAuth tokens received successfully');
 
-    // Store tokens securely (in a real app, store in database)
-    // For now, we'll redirect with success and store in localStorage on client
-    const response = NextResponse.redirect(
-      new URL('/settings?google_auth=success', request.url)
-    );
+    // Determine redirect path
+    const redirectPath = state || '/settings';
+    const redirectUrl = `${redirectPath}?google_auth=success`;
+    
+    // Create response with redirect
+    const response = NextResponse.redirect(new URL(redirectUrl, request.url));
 
     // Set tokens in httpOnly cookies for security and cross-device access
     response.cookies.set('google_access_token', tokens.access_token || '', {

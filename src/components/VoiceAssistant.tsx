@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useSpeechSynthesis, useSpeechRecognition } from 'react-speech-kit';
 import { 
   Mic, 
   MicOff, 
@@ -17,6 +17,14 @@ import {
   User,
   Loader2
 } from 'lucide-react';
+
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 interface VoiceMessage {
   id: string;
@@ -34,42 +42,86 @@ export function VoiceAssistant() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [testMessage, setTestMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [hasPermission, setHasPermission] = useState(true); // react-speech-kit handles this internally
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false); // For N8N audio playback
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   
+  // React Speech Kit hooks
+  const { speak, cancel, speaking, supported: speechSupported, voices } = useSpeechSynthesis();
+  
+  // Force voices to load (sometimes they're empty initially)
+  useEffect(() => {
+    if (speechSupported && voices.length === 0) {
+      // Try to trigger voices loading
+      window.speechSynthesis.getVoices();
+      // Set up event listener for when voices are loaded
+      const handleVoicesChanged = () => {
+        console.log('🎤 Voices loaded:', window.speechSynthesis.getVoices().length);
+      };
+      window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+      return () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+      };
+    }
+  }, [speechSupported, voices.length]);
   const {
-    isListening,
-    isSupported,
-    transcript,
-    error,
-    audioLevel,
-    hasPermission,
-    startListening,
-    stopListening,
-    resetTranscript,
-    requestPermission
-  } = useVoiceInput({
-    language: language === 'ar' ? 'ar-SA' : 'en-US',
-    continuous: false,
-    interimResults: true
+    listen,
+    listening,
+    stop,
+    supported: recognitionSupported
+  } = useSpeechRecognition({
+    onResult: (result: string) => {
+      console.log('🎤 Speech recognition result:', result);
+      if (result.trim()) {
+        handleUserMessage(result);
+      }
+    },
+    onError: (error: any) => {
+      console.error('🎤 Speech recognition error:', error);
+      setError(error.message || 'Voice recognition error occurred');
+    }
   });
+  
+  // More flexible support detection - use manual check as fallback
+  const hasSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const hasSpeechRecognition = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const isSupported = (speechSupported || hasSpeechSynthesis) && (recognitionSupported || hasSpeechRecognition);
+  const isListening = listening;
+  const isSpeaking = speaking || isPlayingAudio; // Either TTS or N8N audio
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle transcript completion
+  // Check for browser support with detailed debugging
   useEffect(() => {
-    if (transcript && !isListening && transcript.length > 0) {
-      handleUserMessage(transcript);
-      resetTranscript();
+    console.log('🔍 Browser support check:');
+    console.log('  - Speech synthesis supported:', speechSupported);
+    console.log('  - Speech recognition supported:', recognitionSupported);
+    console.log('  - User Agent:', navigator.userAgent);
+    console.log('  - Browser language:', navigator.language);
+    
+    // Manual browser support check as fallback
+    const hasSpeechSynthesis = 'speechSynthesis' in window;
+    const hasSpeechRecognition = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+    
+    console.log('  - Manual synthesis check:', hasSpeechSynthesis);
+    console.log('  - Manual recognition check:', hasSpeechRecognition);
+    
+    if (!speechSupported && !hasSpeechSynthesis) {
+      setError('Speech synthesis not supported in this browser. Please use Chrome, Edge, or Safari.');
+    } else if (!recognitionSupported && !hasSpeechRecognition) {
+      setError('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+    } else if (!speechSupported || !recognitionSupported) {
+      console.warn('⚠️ react-speech-kit reports unsupported, but manual check suggests support exists');
+      // Don't show error if manual check passes
     }
-  }, [transcript, isListening]);
+  }, [speechSupported, recognitionSupported]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -78,11 +130,10 @@ export function VoiceAssistant() {
         currentAudio.pause();
         currentAudio.src = '';
       }
-      if (speechSynthesisRef.current) {
-        window.speechSynthesis.cancel();
-      }
+      cancel(); // Cancel speech synthesis
+      stop(); // Stop speech recognition
     };
-  }, [currentAudio]);
+  }, [currentAudio, cancel, stop]);
 
   const handleUserMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -161,37 +212,66 @@ export function VoiceAssistant() {
   };
 
   const speakText = (text: string) => {
-    if (!('speechSynthesis' in window)) return;
-
-    window.speechSynthesis.cancel();
-    setIsSpeaking(true);
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+    console.log('🔊 Speaking text:', text);
+    console.log('🔊 Speech synthesis details:');
+    console.log('  - speechSupported:', speechSupported);
+    console.log('  - speak function available:', !!speak);
+    console.log('  - hasSpeechSynthesis:', hasSpeechSynthesis);
+    console.log('  - Available voices:', voices.length);
     
-    // Set language
-    utterance.lang = language === 'ar' ? 'ar-SA' : 'en-US';
-    
-    // Try to find a good voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => 
-      language === 'ar' 
-        ? voice.lang.startsWith('ar')
-        : voice.lang.startsWith('en')
-    );
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
+    if (speechSupported && speak) {
+      // Use react-speech-kit if available
+      console.log('✅ Using react-speech-kit for speech');
+      const preferredVoice = voices.find(voice => 
+        language === 'ar' 
+          ? voice.lang.startsWith('ar')
+          : voice.lang.startsWith('en')
+      );
+      
+      console.log('🎤 Selected voice:', preferredVoice?.name || 'default');
+      
+      speak({ 
+        text,
+        voice: preferredVoice,
+        rate: 0.9,
+        pitch: 1.0,
+        volume: 1.0
+      });
+    } else if (hasSpeechSynthesis) {
+      // Fallback to native API
+      console.log('📢 Using native speech synthesis as fallback');
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+      
+      const availableVoices = window.speechSynthesis.getVoices();
+      console.log('🎤 Available native voices:', availableVoices.length);
+      
+      const preferredVoice = availableVoices.find(voice => 
+        language === 'ar' 
+          ? voice.lang.startsWith('ar')
+          : voice.lang.startsWith('en')
+      );
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+        console.log('🎤 Selected native voice:', preferredVoice.name);
+      } else {
+        console.log('🎤 Using default native voice');
+      }
+      
+      utterance.onstart = () => console.log('🔊 Native speech started');
+      utterance.onend = () => console.log('✅ Native speech ended');
+      utterance.onerror = (e) => console.error('❌ Native speech error:', e);
+      
+      window.speechSynthesis.speak(utterance);
+    } else {
+      console.warn('❌ Speech synthesis not supported');
     }
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    speechSynthesisRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
   };
 
   const playAudioFromBase64 = (audioBase64: string) => {
@@ -218,16 +298,16 @@ export function VoiceAssistant() {
       const audio = new Audio(audioUrl);
       audio.onplay = () => {
         console.log('🔊 N8N audio started playing');
-        setIsSpeaking(true);
+        setIsPlayingAudio(true);
       };
       audio.onended = () => {
         console.log('✅ N8N audio finished playing');
-        setIsSpeaking(false);
+        setIsPlayingAudio(false);
         URL.revokeObjectURL(audioUrl); // Clean up blob URL
       };
       audio.onerror = (error) => {
         console.error('❌ N8N audio playback error:', error);
-        setIsSpeaking(false);
+        setIsPlayingAudio(false);
         URL.revokeObjectURL(audioUrl); // Clean up blob URL
       };
       
@@ -235,7 +315,7 @@ export function VoiceAssistant() {
       audio.play().catch(console.error);
     } catch (error) {
       console.error('❌ Failed to play N8N audio:', error);
-      setIsSpeaking(false);
+      setIsPlayingAudio(false);
     }
   };
 
@@ -245,9 +325,9 @@ export function VoiceAssistant() {
     }
 
     const audio = new Audio(audioUrl);
-    audio.onplay = () => setIsSpeaking(true);
-    audio.onended = () => setIsSpeaking(false);
-    audio.onerror = () => setIsSpeaking(false);
+    audio.onplay = () => setIsPlayingAudio(true);
+    audio.onended = () => setIsPlayingAudio(false);
+    audio.onerror = () => setIsPlayingAudio(false);
     
     setCurrentAudio(audio);
     audio.play().catch(console.error);
@@ -257,21 +337,60 @@ export function VoiceAssistant() {
     if (currentAudio) {
       currentAudio.pause();
       setCurrentAudio(null);
-    }
-    if (speechSynthesisRef.current) {
-      window.speechSynthesis.cancel();
-    }
-    setIsSpeaking(false);
-  };
-
-  const startVoiceRecording = async () => {
-    if (!hasPermission) {
-      const granted = await requestPermission();
-      if (!granted) return;
+      setIsPlayingAudio(false);
     }
     
+    // Stop react-speech-kit
+    if (cancel) {
+      cancel();
+    }
+    
+    // Stop native speech synthesis as fallback
+    if (hasSpeechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  const startVoiceRecording = () => {
     stopSpeaking(); // Stop any current speech
-    await startListening();
+    setError(null);
+    console.log('🎤 Starting voice recognition...');
+    
+    if (recognitionSupported && listen) {
+      // Use react-speech-kit if available
+      listen({ 
+        lang: language === 'ar' ? 'ar-SA' : 'en-US',
+        interimResults: false,
+        continuous: false
+      });
+    } else if (hasSpeechRecognition) {
+      // Fallback to native API
+      console.log('🎙️ Using native speech recognition as fallback');
+      
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const result = event.results[0][0].transcript;
+        console.log('🎤 Native recognition result:', result);
+        if (result.trim()) {
+          handleUserMessage(result);
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('🎤 Native recognition error:', event.error);
+        setError(`Voice recognition error: ${event.error}`);
+      };
+      
+      recognition.start();
+    } else {
+      setError('Speech recognition not supported in this browser');
+    }
   };
 
   const clearConversation = () => {
@@ -281,6 +400,13 @@ export function VoiceAssistant() {
 
   const initializeAssistant = () => {
     console.log('🚀 Initializing Voice Assistant');
+    console.log('🔍 Browser support status:');
+    console.log('  - Speech synthesis supported:', speechSupported);
+    console.log('  - Speech recognition supported:', recognitionSupported);
+    console.log('  - Manual synthesis check:', hasSpeechSynthesis);
+    console.log('  - Manual recognition check:', hasSpeechRecognition);
+    console.log('  - Overall supported:', isSupported);
+    
     setIsOpen(true);
     
     const welcomeMessage: VoiceMessage = {
@@ -293,6 +419,9 @@ export function VoiceAssistant() {
     };
     
     setMessages([welcomeMessage]);
+    
+    // Test speaking immediately
+    console.log('🔊 Attempting to speak welcome message...');
     speakText(welcomeMessage.text);
   };
 
@@ -459,11 +588,6 @@ export function VoiceAssistant() {
               </div>
             )}
             
-            {transcript && (
-              <div className="mb-3 p-2 bg-blue-100 border border-blue-200 rounded text-sm text-blue-800">
-                <strong>{t('youSaid')}:</strong> {transcript}
-              </div>
-            )}
 
             {/* Test Text Input */}
             <div className="mb-3 flex items-center space-x-2">
@@ -496,10 +620,101 @@ export function VoiceAssistant() {
               </Button>
             </div>
 
+            {/* Debug Test Buttons */}
+            <div className="mb-3 flex items-center space-x-2">
+              <Button
+                onClick={() => {
+                  console.log('🔊 Test Speech button clicked');
+                  try {
+                    speakText('Test speech synthesis');
+                  } catch (error) {
+                    console.error('❌ Test speech error:', error);
+                    alert('Speech test failed: ' + (error as Error).message);
+                  }
+                }}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                🔊 Test Speech
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('🎤 Test Voice button clicked');
+                  const testText = language === 'ar' ? 'اختبار الصوت العربي' : 'Hello, this is a test';
+                  console.log('🎤 Testing with text:', testText);
+                  try {
+                    speakText(testText);
+                  } catch (error) {
+                    console.error('❌ Test voice error:', error);
+                    alert('Voice test failed: ' + (error as Error).message);
+                  }
+                }}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                🎤 Test Voice
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('🔍 Debug button clicked');
+                  const debugInfo = { 
+                    speechSupported, 
+                    recognitionSupported, 
+                    hasSpeechSynthesis, 
+                    hasSpeechRecognition, 
+                    isSupported,
+                    voicesCount: voices.length,
+                    speakFunction: !!speak,
+                    cancelFunction: !!cancel,
+                    userAgent: navigator.userAgent,
+                    language
+                  };
+                  console.log('🔍 Voice debug info:', debugInfo);
+                  alert('Debug info logged to console. Check browser console for details.');
+                }}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                🔍 Debug
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log('📢 Testing native speech synthesis directly');
+                  try {
+                    if ('speechSynthesis' in window) {
+                      window.speechSynthesis.cancel();
+                      const utterance = new SpeechSynthesisUtterance('Native speech test');
+                      utterance.rate = 1;
+                      utterance.pitch = 1;
+                      utterance.volume = 1;
+                      utterance.onstart = () => console.log('✅ Native speech started');
+                      utterance.onend = () => console.log('✅ Native speech ended');
+                      utterance.onerror = (e) => console.error('❌ Native speech error:', e);
+                      window.speechSynthesis.speak(utterance);
+                      console.log('📢 Native speech command sent');
+                    } else {
+                      alert('Native speech synthesis not available');
+                    }
+                  } catch (error) {
+                    console.error('❌ Native speech test error:', error);
+                    alert('Native speech test failed: ' + (error as Error).message);
+                  }
+                }}
+                size="sm"
+                variant="outline"
+                className="text-xs"
+              >
+                📢 Native Test
+              </Button>
+            </div>
+
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Button
-                  onClick={isListening ? stopListening : startVoiceRecording}
+                  onClick={isListening ? stop : startVoiceRecording}
                   disabled={isProcessing}
                   className={`w-12 h-12 rounded-full transition-all duration-200 ${
                     isListening 
@@ -517,9 +732,7 @@ export function VoiceAssistant() {
                       {[...Array(5)].map((_, i) => (
                         <div
                           key={i}
-                          className={`w-1 bg-blue-500 rounded-full transition-all duration-150 ${
-                            audioLevel > i * 20 ? 'h-6' : 'h-2'
-                          }`}
+                          className="w-1 bg-blue-500 rounded-full h-4 animate-pulse"
                         />
                       ))}
                     </div>

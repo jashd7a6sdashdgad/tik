@@ -105,6 +105,9 @@ export const translations: Record<string, Translation> = {
     // Messages
     settingsSaved: "Settings saved successfully!",
     settingsError: "Failed to save settings",
+    deleteError: "Failed to delete",
+    deleteSuccess: "Deleted successfully",
+    contactDeleteError: "Failed to delete contact",
     
     // Dashboard
     welcomeMessage: "Hello! I'm your personal assistant. You can type, use voice commands, or upload files to interact with me.",
@@ -161,6 +164,26 @@ export const translations: Record<string, Translation> = {
     content: "Content",
     mood: "Mood",
     tags: "Tags",
+    
+    // Photos
+    photos: "Photos",
+    manageYourPhotoAlbum: "Manage your photo album",
+    uploadPhotos: "Upload Photos",
+    uploading: "Uploading...",
+    searchPhotos: "Search photos...",
+    favorites: "Favorites",
+    noPhotosFound: "No photos found",
+    uploadPhotosToStart: "Upload some photos to get started",
+    addFirstPhoto: "Add First Photo",
+    photoDetails: "Photo Details",
+    photoDescription: "Description",
+    noDescription: "No description",
+    noTags: "No tags",
+    addToFavorites: "Add to Favorites",
+    unfavorite: "Remove from Favorites",
+    share: "Share",
+    download: "Download",
+    deletePhoto: "Delete Photo",
     
     // Weather
     weatherTitle: "Weather",
@@ -729,6 +752,9 @@ export const translations: Record<string, Translation> = {
     // Messages
     settingsSaved: "تم حفظ الإعدادات بنجاح!",
     settingsError: "فشل في حفظ الإعدادات",
+    deleteError: "فشل في الحذف",
+    deleteSuccess: "تم الحذف بنجاح",
+    contactDeleteError: "فشل في حذف جهة الاتصال",
     
     // Dashboard
     welcomeMessage: "مرحباً! أنا مساعدك الشخصي. يمكنك الكتابة أو استخدام الأوامر الصوتية أو تحميل الملفات للتفاعل معي.",
@@ -785,6 +811,26 @@ export const translations: Record<string, Translation> = {
     content: "المحتوى",
     mood: "المزاج",
     tags: "العلامات",
+    
+    // Photos
+    photos: "الصور",
+    manageYourPhotoAlbum: "إدارة ألبوم الصور الخاص بك",
+    uploadPhotos: "رفع الصور",
+    uploading: "جاري الرفع...",
+    searchPhotos: "البحث في الصور...",
+    favorites: "المفضلة",
+    noPhotosFound: "لم يتم العثور على صور",
+    uploadPhotosToStart: "قم برفع بعض الصور للبدء",
+    addFirstPhoto: "إضافة أول صورة",
+    photoDetails: "تفاصيل الصورة",
+    photoDescription: "الوصف",
+    noDescription: "لا يوجد وصف",
+    noTags: "لا توجد علامات",
+    addToFavorites: "إضافة للمفضلة",
+    unfavorite: "إزالة من المفضلة",
+    share: "مشاركة",
+    download: "تحميل",
+    deletePhoto: "حذف الصورة",
     
     // Weather
     weatherTitle: "الطقس",

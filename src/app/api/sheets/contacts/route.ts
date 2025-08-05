@@ -309,20 +309,61 @@ export async function DELETE(request: NextRequest) {
       refresh_token: refreshToken
     });
     
-    const rowIndex = parseInt(id) + 1; // +1 for header row
+    // Get sheet info to find the correct sheetId
+    let sheetId = 0;
+    try {
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID
+      });
+      
+      const contactsSheet = spreadsheet.data.sheets?.find(
+        sheet => sheet.properties?.title === CONTACTS_CONFIG.name
+      );
+      
+      if (contactsSheet?.properties?.sheetId !== undefined && contactsSheet.properties.sheetId !== null) {
+        sheetId = contactsSheet.properties.sheetId;
+      }
+    } catch (sheetError) {
+      console.error('Error getting sheet info:', sheetError);
+      // Continue with default sheetId = 0
+    }
+
+    // First, get all contacts to find the correct row
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${CONTACTS_CONFIG.name}!A:Z`
+    });
+
+    const rows = response.data.values || [];
+    let rowToDelete = -1;
+    
+    // Find the row with matching ID (assuming ID is in first column after header)
+    for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header
+      if (rows[i][0] === id) { // Assuming ID is in column A
+        rowToDelete = i;
+        break;
+      }
+    }
+    
+    if (rowToDelete === -1) {
+      return NextResponse.json({
+        success: false,
+        message: 'Contact not found'
+      }, { status: 404 });
+    }
 
     try {
-      // Delete the row
+      // Delete the row (Google Sheets API uses 0-based indexing)
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         requestBody: {
           requests: [{
             deleteDimension: {
               range: {
-                sheetId: 0, // Assuming first sheet
+                sheetId: sheetId,
                 dimension: 'ROWS',
-                startIndex: rowIndex,
-                endIndex: rowIndex + 1
+                startIndex: rowToDelete,
+                endIndex: rowToDelete + 1
               }
             }
           }]

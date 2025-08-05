@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { SmartNarratorProvider } from "@/components/SmartNarratorProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,8 +44,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} antialiased`}
       >
         <SettingsProvider>
-          <ErrorBoundary>
-            {children}
+          <SmartNarratorProvider>
+            <ErrorBoundary>
+              {children}
             {/* ARIA Live Region for Screen Reader Announcements */}
             <div 
               id="aria-live-region" 
@@ -58,7 +60,8 @@ export default function RootLayout({
               aria-atomic="true"
               className="sr-only"
             ></div>
-          </ErrorBoundary>
+            </ErrorBoundary>
+          </SmartNarratorProvider>
         </SettingsProvider>
       </body>
     </html>

@@ -16,9 +16,16 @@ import {
   User,
   Calendar,
   Paperclip,
-  Trash2
+  Trash2,
+  Brain,
+  Sparkles,
+  Tag,
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { emailIntelligence, EmailMessage as SmartEmailMessage } from '@/lib/emailIntelligence';
+import EmailTemplatesPanel from '@/components/EmailTemplatesPanel';
 
 interface EmailMessage {
   id: string;
@@ -29,6 +36,14 @@ interface EmailMessage {
       value: string;
     }>;
   };
+  // AI-enhanced properties
+  priority?: 'urgent' | 'high' | 'medium' | 'low';
+  category?: string;
+  sentiment?: 'positive' | 'neutral' | 'negative';
+  aiSummary?: string;
+  suggestedActions?: string[];
+  isSpam?: boolean;
+  confidence?: number;
 }
 
 export default function EmailPage() {
@@ -46,6 +61,10 @@ export default function EmailPage() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
+  const [smartMessages, setSmartMessages] = useState<EmailMessage[]>([]);
 
   const { 
     isListening, 
@@ -77,7 +96,13 @@ export default function EmailPage() {
       const data = await response.json();
       
       if (data.success) {
-        setMessages(data.data || []);
+        const rawMessages = data.data || [];
+        // Apply AI intelligence to classify messages
+        const enhancedMessages = rawMessages.map((msg: EmailMessage) => 
+          emailIntelligence.classifyEmail(msg as SmartEmailMessage)
+        );
+        setMessages(enhancedMessages);
+        setSmartMessages(enhancedMessages);
       } else {
         console.error('Failed to fetch messages:', data.message);
       }
@@ -196,6 +221,55 @@ export default function EmailPage() {
     return header?.value || '';
   };
 
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-100 text-red-800 border-red-200';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getCategoryColor = (category?: string) => {
+    switch (category) {
+      case 'Work': return 'bg-blue-100 text-blue-800';
+      case 'Personal': return 'bg-green-100 text-green-800';
+      case 'Financial': return 'bg-yellow-100 text-yellow-800';
+      case 'Shopping': return 'bg-purple-100 text-purple-800';
+      case 'Travel': return 'bg-red-100 text-red-800';
+      case 'Medical': return 'bg-pink-100 text-pink-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleTemplateSelect = (template: any) => {
+    setEmailSubject(template.subject);
+    setEmailBody(template.body);
+    setShowCompose(true);
+    setShowTemplates(false);
+  };
+
+  const handleSendReply = (content: string) => {
+    if (selectedEmail) {
+      const replyTo = getHeaderValue(selectedEmail.payload.headers, 'From');
+      const originalSubject = getHeaderValue(selectedEmail.payload.headers, 'Subject');
+      setEmailTo(replyTo);
+      setEmailSubject(`Re: ${originalSubject}`);
+      setEmailBody(content);
+      setShowCompose(true);
+      setShowTemplates(false);
+    }
+  };
+
+  const getSentimentIcon = (sentiment?: string) => {
+    switch (sentiment) {
+      case 'positive': return '😊';
+      case 'negative': return '😟';
+      default: return '😐';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString();
@@ -224,6 +298,23 @@ export default function EmailPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 {t('refresh')}
               </Button>
+              <Button 
+                onClick={() => setShowAIInsights(!showAIInsights)} 
+                variant="outline" 
+                size="sm"
+                className={showAIInsights ? 'bg-blue-50 text-blue-700' : ''}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                AI Insights
+              </Button>
+              <Button 
+                onClick={() => setShowTemplates(!showTemplates)} 
+                variant="outline" 
+                size="sm"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Templates
+              </Button>
               <Button onClick={() => setShowCompose(true)}>
                 <Mail className="h-4 w-4 mr-2" />
                 {t('compose')}
@@ -234,6 +325,91 @@ export default function EmailPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* AI Insights Panel */}
+        {showAIInsights && smartMessages.length > 0 && (
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-blue-600" />
+                Email Intelligence Insights
+              </CardTitle>
+              <CardDescription>
+                AI-powered analysis of your email patterns and priorities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="font-medium">High Priority</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-700">
+                    {smartMessages.filter(m => m.priority === 'high' || m.priority === 'urgent').length}
+                  </p>
+                  <p className="text-sm text-gray-600">emails need attention</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="h-4 w-4 text-blue-600" />
+                    <span className="font-medium">Categories</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {new Set(smartMessages.map(m => m.category).filter(Boolean)).size}
+                  </p>
+                  <p className="text-sm text-gray-600">detected</p>
+                </div>
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <span className="font-medium">Spam Detected</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-700">
+                    {smartMessages.filter(m => m.isSpam).length}
+                  </p>
+                  <p className="text-sm text-gray-600">suspicious emails</p>
+                </div>
+              </div>
+              {/* Quick actions based on AI analysis */}
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setMessages(messages.filter(m => m.priority === 'urgent' || m.priority === 'high'))}
+                >
+                  Show High Priority Only
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setMessages(messages.filter(m => !m.isSpam))}
+                >
+                  Hide Spam
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setMessages(smartMessages)}
+                >
+                  Show All
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Templates Panel */}
+        {showTemplates && (
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <EmailTemplatesPanel 
+                onTemplateSelect={handleTemplateSelect}
+                selectedEmail={selectedEmail}
+                onSendReply={handleSendReply}
+              />
+            </CardContent>
+          </Card>
+        )}
         {/* Voice Compose */}
         <Card className="mb-8">
           <CardHeader>
@@ -363,36 +539,97 @@ export default function EmailPage() {
                   const date = getHeaderValue(message.payload.headers, 'Date');
                   
                   return (
-                    <div key={message.id} className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                    <div 
+                      key={message.id} 
+                      className={`p-4 rounded-lg hover:shadow-md transition-all cursor-pointer ${
+                        message.isSpam ? 'bg-red-50 border border-red-200' : 
+                        message.priority === 'urgent' ? 'bg-red-50 border-l-4 border-l-red-500' :
+                        message.priority === 'high' ? 'bg-orange-50 border-l-4 border-l-orange-500' :
+                        'bg-muted hover:bg-muted/80'
+                      }`}
+                      onClick={() => setSelectedEmail(message)}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
                             <User className="h-4 w-4 text-black" />
                             <span className="font-medium text-black">{from}</span>
                             <span className="text-sm text-black">{formatDate(date)}</span>
+                            {message.priority && (
+                              <span className={`text-xs px-2 py-1 rounded-full border ${getPriorityColor(message.priority)}`}>
+                                {message.priority.toUpperCase()}
+                              </span>
+                            )}
+                            {message.sentiment && (
+                              <span className="text-sm">
+                                {getSentimentIcon(message.sentiment)}
+                              </span>
+                            )}
                           </div>
                           
-                          <h4 className="font-medium text-black mb-2">{subject}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium text-black">{subject}</h4>
+                            {message.category && (
+                              <span className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(message.category)}`}>
+                                {message.category}
+                              </span>
+                            )}
+                            {message.isSpam && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                SPAM
+                              </span>
+                            )}
+                          </div>
                           
                           <p className="text-sm text-black line-clamp-2">
-                            {message.snippet}
+                            {message.aiSummary || message.snippet}
                           </p>
+                          
+                          {message.suggestedActions && message.suggestedActions.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {message.suggestedActions.slice(0, 2).map((action, idx) => (
+                                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                  💡 {action}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEmail(message);
+                              setShowTemplates(true);
+                            }}
+                          >
+                            <Sparkles className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm">
                             <Mail className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => deleteMessage(message.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteMessage(message.id);
+                            }}
                             disabled={deleting === message.id}
                           >
                             <Trash2 className={`h-4 w-4 ${deleting === message.id ? 'animate-spin' : 'text-red-500'}`} />
                           </Button>
                         </div>
                       </div>
+                      
+                      {message.confidence && message.confidence < 0.7 && (
+                        <div className="mt-2 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                          ⚠️ Low AI confidence ({Math.round(message.confidence * 100)}%) - please verify categorization
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -400,10 +637,18 @@ export default function EmailPage() {
             ) : (
               <div className="text-center py-12">
                 <Mail className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-black">{t('message')}</p>
+                <p className="text-black">No emails found</p>
                 <p className="text-sm text-black mt-2">
-                  {searchQuery ? t('search') : t('inbox')}
+                  {searchQuery ? 'Try adjusting your search terms' : 'Your inbox is empty'}
                 </p>
+                <Button 
+                  onClick={() => setShowTemplates(true)}
+                  variant="outline" 
+                  className="mt-4"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Browse Email Templates
+                </Button>
               </div>
             )}
           </CardContent>

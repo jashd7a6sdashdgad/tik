@@ -19,7 +19,9 @@ import {
   Youtube,
   Globe,
   Brain,
-  Sun
+  Sun,
+  Camera,
+  Share2
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -83,6 +85,12 @@ const getNavigation = (t: (key: string) => string) => [
     icon: FileSpreadsheet
   },
   {
+    key: 'photos',
+    name: t('photos'),
+    href: '/photos',
+    icon: Camera
+  },
+  {
     key: 'budget',
     name: t('budget'),
     href: '/budget',
@@ -99,6 +107,12 @@ const getNavigation = (t: (key: string) => string) => [
     name: t('tracking'),
     href: '/tracking',
     icon: Stethoscope
+  },
+  {
+    key: 'social-media',
+    name: 'Social Media',
+    href: '/social-media',
+    icon: Share2
   },
   {
     key: 'facebook',

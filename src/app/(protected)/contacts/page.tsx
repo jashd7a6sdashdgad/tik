@@ -184,10 +184,33 @@ export default function ContactsPage() {
     }
   };
 
+  const testContactsAPI = async () => {
+    console.log('🔍 Testing contacts API...');
+    try {
+      const response = await fetch('/api/sheets/contacts', {
+        method: 'GET'
+      });
+      console.log('🔍 Contacts API test response status:', response.status);
+      console.log('🔍 Contacts API test response OK:', response.ok);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Contacts API is accessible:', data);
+      } else {
+        console.log('❌ Contacts API error:', response.statusText);
+      }
+    } catch (error) {
+      console.error('❌ Contacts API test failed:', error);
+    }
+  };
+
   const deleteContact = async (contactId: string) => {
     if (!confirm(t('delete') + '?')) {
       return;
     }
+
+    console.log('🗑️ Attempting to delete contact:', contactId);
+    console.log('🔍 DELETE URL: /api/sheets/contacts');
 
     setDeleting(contactId);
     try {
@@ -197,16 +220,27 @@ export default function ContactsPage() {
         body: JSON.stringify({ id: contactId })
       });
 
+      console.log('🔍 Delete response status:', response.status);
+      console.log('🔍 Delete response OK:', response.ok);
+      console.log('🔍 Delete response URL:', response.url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       
       if (data.success) {
+        console.log('✅ Contact deleted successfully');
         await fetchContacts();
       } else {
-        alert(t('settingsError') + ': ' + data.message);
+        console.error('❌ Failed to delete contact:', data.message);
+        alert(t('contactDeleteError') + ': ' + (data.message || 'Unknown error'));
       }
-    } catch (error) {
-      console.error('Error deleting contact:', error);
-      alert(t('settingsError'));
+    } catch (error: any) {
+      console.error('❌ Error deleting contact:', error);
+      const errorMessage = error.message || error.toString() || 'Network error';
+      alert(t('contactDeleteError') + ': ' + errorMessage);
     } finally {
       setDeleting(null);
     }
@@ -272,6 +306,9 @@ export default function ContactsPage() {
             <Button onClick={fetchContacts} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               {t('refresh')}
+            </Button>
+            <Button onClick={testContactsAPI} variant="outline" size="sm">
+              🔍 Test API
             </Button>
             <Button onClick={() => setShowAddForm(true)}>
               <Plus className="h-4 w-4 mr-2" />

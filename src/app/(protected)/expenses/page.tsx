@@ -19,10 +19,18 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  Brain,
+  Camera,
+  Zap,
+  Target,
+  Eye
 } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import AddExpenseForm from '@/components/AddExpenseForm';
+import { expenseIntelligence, SmartExpense } from '@/lib/expenseIntelligence';
+import ExpenseInsightsDashboard from '@/components/ExpenseInsightsDashboard';
 
 interface ExpenseAnalytics {
   total: number;
@@ -53,6 +61,8 @@ export default function ExpensesPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [showInsights, setShowInsights] = useState(false);
+  const [smartExpenses, setSmartExpenses] = useState<SmartExpense[]>([]);
 
   const { 
     isListening, 
@@ -99,7 +109,13 @@ export default function ExpensesPage() {
       const data = await response.json();
       
       if (data.success) {
-        setExpenses(data.data.expenses || []);
+        const rawExpenses = data.data.expenses || [];
+        setExpenses(rawExpenses);
+        
+        // Apply AI intelligence to classify expenses
+        const enhancedExpenses = expenseIntelligence.batchClassifyExpenses(rawExpenses);
+        setSmartExpenses(enhancedExpenses);
+        
         setAnalytics(data.data.analytics || null);
       } else {
         console.error('Failed to fetch expenses:', data.message);
@@ -139,6 +155,11 @@ export default function ExpensesPage() {
         ];
         
         setExpenses(mockExpenses);
+        
+        // Apply AI intelligence to mock data too
+        const enhancedMockExpenses = expenseIntelligence.batchClassifyExpenses(mockExpenses);
+        setSmartExpenses(enhancedMockExpenses);
+        
         setAnalytics({
           total: mockExpenses.reduce((sum, exp) => sum + ((exp.debitAmount || 0) - (exp.creditAmount || 0)), 0),
           count: mockExpenses.length,
@@ -177,6 +198,11 @@ export default function ExpensesPage() {
       ];
       
       setExpenses(mockExpenses);
+      
+      // Apply AI intelligence to fallback data
+      const enhancedFallbackExpenses = expenseIntelligence.batchClassifyExpenses(mockExpenses);
+      setSmartExpenses(enhancedFallbackExpenses);
+      
       setAnalytics({
         total: mockExpenses.reduce((sum, exp) => sum + ((exp.debitAmount || 0) - (exp.creditAmount || 0)), 0),
         count: mockExpenses.length,
@@ -279,6 +305,15 @@ export default function ExpensesPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 {t('refresh')}
               </Button>
+              <Button 
+                onClick={() => setShowInsights(!showInsights)} 
+                variant="outline" 
+                size="sm"
+                className={showInsights ? 'bg-blue-50 text-blue-700' : ''}
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                AI Insights
+              </Button>
               <Button onClick={() => setShowAddForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 {t('addExpense')}
@@ -289,6 +324,15 @@ export default function ExpensesPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* AI Insights Dashboard */}
+        {showInsights && (
+          <div className="mb-8">
+            <ExpenseInsightsDashboard 
+              expenses={smartExpenses} 
+              onRefresh={fetchExpenses}
+            />
+          </div>
+        )}
         {/* API Status Banner */}
         {usingMockData && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -449,71 +493,164 @@ export default function ExpensesPage() {
             ) : expenses.length === 0 ? (
               <div className="text-center py-8">
                 <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-black">{t('expenses')}</p>
-                <p className="text-gray-600 text-sm">{t('addExpense')}</p>
+                <p className="text-black">No expenses found</p>
+                <p className="text-gray-600 text-sm">Start by adding your first expense or upload receipt images</p>
+                <div className="flex gap-2 justify-center mt-4">
+                  <Button onClick={() => setShowAddForm(true)} variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Expense
+                  </Button>
+                  <Button onClick={() => setShowInsights(true)} variant="outline">
+                    <Camera className="h-4 w-4 mr-2" />
+                    Upload Receipt
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
                 <div className="space-y-4">
-                  {getPaginatedExpenses().map((expense) => (
-                    <div key={expense.id} className="p-4 border border-border rounded-lg bg-white">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-black">{expense.description}</span>
-                            <span className="px-2 py-1 bg-secondary text-black text-xs rounded-full">
-                              {expense.category}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {expense.date && <span>{new Date(expense.date).toLocaleDateString()}</span>}
-                            {expense.from && (
-                              <span className="ml-2">• From: {expense.from}</span>
-                            )}
-                          </div>
-                          {expense.availableBalance && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              Available Balance: {formatCurrency(expense.availableBalance)}
-                            </div>
-                          )}
-                          {expense.id && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              ID: {expense.id.startsWith('http') ? (
-                                <a 
-                                  href={expense.id} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 underline ml-1"
-                                >
-                                  {expense.id}
-                                </a>
-                              ) : (
-                                <span className="ml-1">{expense.id}</span>
+                  {getPaginatedExpenses().map((expense) => {
+                    // Find corresponding smart expense data
+                    const smartExpense = smartExpenses.find(se => se.id === expense.id) || expense;
+                    const isSmartExpense = smartExpense !== expense;
+                    
+                    return (
+                      <div key={expense.id} className={`p-4 border rounded-lg transition-all hover:shadow-md ${
+                        smartExpense.budgetImpact === 'over_budget' ? 'border-red-200 bg-red-50' :
+                        smartExpense.budgetImpact === 'significant_expense' ? 'border-orange-200 bg-orange-50' :
+                        smartExpense.anomalyScore && smartExpense.anomalyScore > 0.7 ? 'border-purple-200 bg-purple-50' :
+                        'border-border bg-white'
+                      }`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1 flex-wrap">
+                              <span className="font-medium text-black">{expense.description}</span>
+                              
+                              {/* Original category */}
+                              <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                                {expense.category}
+                              </span>
+                              
+                              {/* AI-suggested category if different */}
+                              {isSmartExpense && smartExpense.autoCategory && smartExpense.autoCategory !== expense.category && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1">
+                                  <Brain className="h-3 w-3" />
+                                  AI: {smartExpense.autoCategory}
+                                  {smartExpense.confidence && (
+                                    <span className="text-xs">({Math.round(smartExpense.confidence * 100)}%)</span>
+                                  )}
+                                </span>
+                              )}
+                              
+                              {/* Budget impact indicator */}
+                              {smartExpense.budgetImpact === 'over_budget' && (
+                                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Over Budget
+                                </span>
+                              )}
+                              
+                              {smartExpense.budgetImpact === 'significant_expense' && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full flex items-center gap-1">
+                                  <Eye className="h-3 w-3" />
+                                  Large Expense
+                                </span>
+                              )}
+                              
+                              {/* Anomaly indicator */}
+                              {smartExpense.anomalyScore && smartExpense.anomalyScore > 0.7 && (
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
+                                  <Zap className="h-3 w-3" />
+                                  Unusual
+                                </span>
+                              )}
+                              
+                              {/* Recurring pattern */}
+                              {smartExpense.recurringPattern && smartExpense.recurringPattern !== 'irregular' && (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                  {smartExpense.recurringPattern}
+                                </span>
                               )}
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="text-right mr-4">
-                            {expense.creditAmount && expense.creditAmount > 0 && (
-                              <div className="text-sm text-green-600">+{formatCurrency(expense.creditAmount)}</div>
+                            
+                            <div className="text-sm text-gray-600">
+                              {expense.date && <span>{new Date(expense.date).toLocaleDateString()}</span>}
+                              {smartExpense.merchant && smartExpense.merchant !== expense.from && (
+                                <span className="ml-2">• Merchant: {smartExpense.merchant}</span>
+                              )}
+                              {expense.from && (
+                                <span className="ml-2">• From: {expense.from}</span>
+                              )}
+                            </div>
+                            
+                            {/* AI-generated tags */}
+                            {smartExpense.tags && smartExpense.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {smartExpense.tags.slice(0, 3).map((tag, idx) => (
+                                  <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
                             )}
-                            {expense.debitAmount && expense.debitAmount > 0 && (
-                              <div className="text-sm text-red-600">-{formatCurrency(expense.debitAmount)}</div>
+                            
+                            {/* AI suggestions */}
+                            {smartExpense.suggestedActions && smartExpense.suggestedActions.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {smartExpense.suggestedActions.slice(0, 2).map((action, idx) => (
+                                  <span key={idx} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200">
+                                    💡 {action}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {expense.availableBalance && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                Available Balance: {formatCurrency(expense.availableBalance)}
+                              </div>
+                            )}
+                            
+                            {expense.id && (
+                              <div className="text-sm text-gray-600 mt-1">
+                                ID: {expense.id.startsWith('http') ? (
+                                  <a 
+                                    href={expense.id} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 underline ml-1"
+                                  >
+                                    {expense.id}
+                                  </a>
+                                ) : (
+                                  <span className="ml-1">{expense.id}</span>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => expense.id && deleteExpense(expense.id)}
-                            disabled={deleting === expense.id}
-                          >
-                            <Trash2 className={`h-4 w-4 ${deleting === expense.id ? 'animate-spin' : 'text-red-500'}`} />
-                          </Button>
+                          
+                          <div className="flex items-center space-x-2">
+                            <div className="text-right mr-4">
+                              {expense.creditAmount && expense.creditAmount > 0 && (
+                                <div className="text-sm text-green-600">+{formatCurrency(expense.creditAmount)}</div>
+                              )}
+                              {expense.debitAmount && expense.debitAmount > 0 && (
+                                <div className="text-sm text-red-600">-{formatCurrency(expense.debitAmount)}</div>
+                              )}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => expense.id && deleteExpense(expense.id)}
+                              disabled={deleting === expense.id}
+                            >
+                              <Trash2 className={`h-4 w-4 ${deleting === expense.id ? 'animate-spin' : 'text-red-500'}`} />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 
                 {/* Pagination */}
