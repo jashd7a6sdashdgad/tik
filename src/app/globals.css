@@ -21,7 +21,7 @@
   --input: var(--background);
   --ring: var(--primary);
   --muted: var(--secondary);
-  --muted-foreground: #000000;
+  --muted-foreground: #666666;
 }
 
 @theme inline {
@@ -83,6 +83,62 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+/* Ensure all text elements have proper colors */
+* {
+  color: inherit;
+}
+
+/* Default text colors for common elements */
+p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
+  color: var(--foreground);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
+    color: #ffffff;
+  }
+}
+
+/* Light mode explicit colors */
+@media (prefers-color-scheme: light) {
+  p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
+    color: #000000;
+  }
+}
+
+/* Override Tailwind text utilities for better visibility */
+.text-muted-foreground {
+  color: #666666 !important;
+}
+
+.text-foreground {
+  color: var(--foreground) !important;
+}
+
+.text-primary {
+  color: var(--primary) !important;
+}
+
+.text-secondary {
+  color: var(--secondary-foreground) !important;
+}
+
+/* Card content text colors */
+.card * {
+  color: var(--card-foreground) !important;
+}
+
+/* Ensure buttons have proper text color */
+button, .btn {
+  color: var(--foreground) !important;
+}
+
+/* Input text colors */
+input, textarea, select {
+  color: var(--foreground) !important;
 }
 
 /* Glassmorphism effects with custom palette */
