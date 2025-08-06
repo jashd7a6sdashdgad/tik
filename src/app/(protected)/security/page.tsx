@@ -236,14 +236,14 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            <Shield className="w-8 h-8" />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             Security & Privacy Center
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Manage your security settings, privacy controls, and audit logs
           </p>
         </div>
@@ -260,7 +260,7 @@ export default function SecurityPage() {
 
       {/* Security Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-full ${
@@ -273,22 +273,22 @@ export default function SecurityPage() {
                 }`} />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Threat Level</p>
-                <p className="font-semibold capitalize">{securityStatus.threatLevel}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Threat Level</p>
+                <p className="font-semibold capitalize text-gray-900 dark:text-gray-100">{securityStatus.threatLevel}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-full">
                 <Fingerprint className="w-4 h-4 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Biometric Auth</p>
-                <p className="font-semibold">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Biometric Auth</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
                   {securityStatus.biometricEnabled ? 'Enabled' : 'Disabled'}
                 </p>
               </div>
@@ -296,15 +296,15 @@ export default function SecurityPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-full">
                 <Eye className="w-4 h-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Privacy Mode</p>
-                <p className="font-semibold">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Privacy Mode</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
                   {securityStatus.privacyModeActive ? 'Active' : 'Inactive'}
                 </p>
               </div>
@@ -312,17 +312,17 @@ export default function SecurityPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-full">
                 <CheckCircle className="w-4 h-4 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Password Strength</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Password Strength</p>
                 <div className="flex items-center gap-2">
                   <Progress value={securityStatus.passwordStrength} className="w-16 h-2" />
-                  <span className="text-sm font-semibold">{securityStatus.passwordStrength}%</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{securityStatus.passwordStrength}%</span>
                 </div>
               </div>
             </div>
@@ -341,35 +341,35 @@ export default function SecurityPage() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                   <Activity className="w-5 h-5" />
                   Security Health
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span>Encryption</span>
+                  <span className="text-gray-900 dark:text-gray-100">Encryption</span>
                   <Badge variant={securityStatus.encryptionEnabled ? "default" : "destructive"}>
                     {securityStatus.encryptionEnabled ? 'Enabled' : 'Disabled'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Audit Logging</span>
+                  <span className="text-gray-900 dark:text-gray-100">Audit Logging</span>
                   <Badge variant={securityStatus.auditLoggingEnabled ? "default" : "destructive"}>
                     {securityStatus.auditLoggingEnabled ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Data Retention</span>
+                  <span className="text-gray-900 dark:text-gray-100">Data Retention</span>
                   <Badge variant={securityStatus.dataRetentionCompliant ? "default" : "secondary"}>
                     {securityStatus.dataRetentionCompliant ? 'Compliant' : 'Review Needed'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Last Security Check</span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-gray-900 dark:text-gray-100">Last Security Check</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {securityStatus.lastSecurityCheck.toLocaleDateString()}
                   </span>
                 </div>
@@ -377,34 +377,34 @@ export default function SecurityPage() {
             </Card>
 
             {auditReport && (
-              <Card>
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                     <BarChart3 className="w-5 h-5" />
                     Activity Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span>Total Events</span>
+                    <span className="text-gray-900 dark:text-gray-100">Total Events</span>
                     <span className="font-semibold">{auditReport.totalEntries}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Success Rate</span>
+                    <span className="text-gray-900 dark:text-gray-100">Success Rate</span>
                     <span className="font-semibold text-green-600">
                       {auditReport.successRate.toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Security Events</span>
+                    <span className="text-gray-900 dark:text-gray-100">Security Events</span>
                     <span className="font-semibold">{auditReport.securityEvents}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Privacy Events</span>
+                    <span className="text-gray-900 dark:text-gray-100">Privacy Events</span>
                     <span className="font-semibold">{auditReport.privacyEvents}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Anomalies</span>
+                    <span className="text-gray-900 dark:text-gray-100">Anomalies</span>
                     <Badge variant={auditReport.anomalies.length > 0 ? "destructive" : "default"}>
                       {auditReport.anomalies.length}
                     </Badge>
@@ -416,13 +416,13 @@ export default function SecurityPage() {
         </TabsContent>
 
         <TabsContent value="biometric" className="space-y-6">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Fingerprint className="w-5 h-5" />
                 Biometric Authentication
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Set up and manage biometric authentication methods
               </CardDescription>
             </CardHeader>
@@ -437,7 +437,7 @@ export default function SecurityPage() {
                         biometricCapabilities.hasFingerprint ? 'text-green-600' : 'text-gray-400'
                       }`} />
                     </div>
-                    <p className="text-sm mt-2">Fingerprint</p>
+                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">Fingerprint</p>
                     <p className="text-xs text-muted-foreground">
                       {biometricCapabilities.hasFingerprint ? 'Available' : 'Not Available'}
                     </p>
@@ -451,7 +451,7 @@ export default function SecurityPage() {
                         biometricCapabilities.hasFaceID ? 'text-green-600' : 'text-gray-400'
                       }`} />
                     </div>
-                    <p className="text-sm mt-2">Face ID</p>
+                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">Face ID</p>
                     <p className="text-xs text-muted-foreground">
                       {biometricCapabilities.hasFaceID ? 'Available' : 'Not Available'}
                     </p>
@@ -465,7 +465,7 @@ export default function SecurityPage() {
                         biometricCapabilities.hasVoice ? 'text-green-600' : 'text-gray-400'
                       }`} />
                     </div>
-                    <p className="text-sm mt-2">Voice</p>
+                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">Voice</p>
                     <p className="text-xs text-muted-foreground">
                       {biometricCapabilities.hasVoice ? 'Available' : 'Not Available'}
                     </p>
@@ -475,7 +475,7 @@ export default function SecurityPage() {
                     <div className="p-3 rounded-full mx-auto w-fit bg-blue-100">
                       <Key className="w-6 h-6 text-blue-600" />
                     </div>
-                    <p className="text-sm mt-2">PIN</p>
+                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-400">PIN</p>
                     <p className="text-xs text-muted-foreground">Always Available</p>
                   </div>
                 </div>
@@ -506,13 +506,13 @@ export default function SecurityPage() {
         </TabsContent>
 
         <TabsContent value="privacy" className="space-y-6">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="w-5 h-5" />
                 Privacy Controls
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Manage data retention, auto-deletion, and privacy settings
               </CardDescription>
             </CardHeader>
@@ -521,8 +521,8 @@ export default function SecurityPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Auto-Delete Expired Data</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Auto-Delete Expired Data</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Automatically delete data after retention period
                       </p>
                     </div>
@@ -535,10 +535,10 @@ export default function SecurityPage() {
                   </div>
                   
                   <div className="space-y-4">
-                    <h4 className="font-medium">Data Retention Periods</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Data Retention Periods</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(privacySettings.retentionPeriods).map(([type, days]) => (
-                        <div key={type} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div key={type} className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                           <span className="capitalize">{type.replace(/([A-Z])/g, ' $1')}</span>
                           <Badge variant="secondary">{days} days</Badge>
                         </div>
@@ -548,8 +548,8 @@ export default function SecurityPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Data Minimization</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Data Minimization</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         Collect only necessary data
                       </p>
                     </div>
@@ -583,31 +583,31 @@ export default function SecurityPage() {
         </TabsContent>
 
         <TabsContent value="encryption" className="space-y-6">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5" />
                 Encryption Management
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Manage encrypted storage and data protection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <Database className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                   <p className="font-medium">AES-256</p>
                   <p className="text-sm text-muted-foreground">Encryption Standard</p>
                 </div>
                 
-                <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <Key className="w-8 h-8 mx-auto mb-2 text-green-600" />
                   <p className="font-medium">PBKDF2</p>
                   <p className="text-sm text-muted-foreground">Key Derivation</p>
                 </div>
                 
-                <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
                   <p className="font-medium">Client-Side</p>
                   <p className="text-sm text-muted-foreground">Zero-Knowledge</p>
@@ -618,19 +618,19 @@ export default function SecurityPage() {
                 <h4 className="font-medium">Encrypted Storage Status</h4>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span>Sensitive Data</span>
+                    <span className="text-gray-900 dark:text-gray-100">Sensitive Data</span>
                     <Badge variant="default">Encrypted</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Authentication Data</span>
+                    <span className="text-gray-900 dark:text-gray-100">Authentication Data</span>
                     <Badge variant="default">Encrypted</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Audit Logs</span>
+                    <span className="text-gray-900 dark:text-gray-100">Audit Logs</span>
                     <Badge variant="default">Encrypted</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Personal Information</span>
+                    <span className="text-gray-900 dark:text-gray-100">Personal Information</span>
                     <Badge variant="default">Encrypted</Badge>
                   </div>
                 </div>
@@ -640,13 +640,13 @@ export default function SecurityPage() {
         </TabsContent>
 
         <TabsContent value="audit" className="space-y-6">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Audit Logs
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
                 Review system activity and security events
               </CardDescription>
             </CardHeader>
@@ -654,35 +654,35 @@ export default function SecurityPage() {
               {auditReport && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <p className="text-2xl font-bold text-blue-600">{auditReport.totalEntries}</p>
-                      <p className="text-sm text-muted-foreground">Total Events</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Total Events</p>
                     </div>
                     
-                    <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <p className="text-2xl font-bold text-green-600">
                         {auditReport.successRate.toFixed(1)}%
                       </p>
-                      <p className="text-sm text-muted-foreground">Success Rate</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Success Rate</p>
                     </div>
                     
-                    <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <p className="text-2xl font-bold text-orange-600">{auditReport.securityEvents}</p>
-                      <p className="text-sm text-muted-foreground">Security Events</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Security Events</p>
                     </div>
                     
-                    <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <p className="text-2xl font-bold text-red-600">{auditReport.anomalies.length}</p>
-                      <p className="text-sm text-muted-foreground">Anomalies</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Anomalies</p>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <h4 className="font-medium">Event Categories</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Event Categories</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {Object.entries(auditReport.entriesByCategory).map(([category, count]) => (
                         <div key={category} className="flex items-center justify-between p-2 bg-muted rounded">
-                          <span className="text-sm capitalize">{category}</span>
+                          <span className="text-sm capitalize text-gray-900 dark:text-gray-100">{category}</span>
                           <Badge variant="secondary">{count}</Badge>
                         </div>
                       ))}
@@ -690,11 +690,11 @@ export default function SecurityPage() {
                   </div>
                   
                   <div className="space-y-4">
-                    <h4 className="font-medium">Top Actions</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">Top Actions</h4>
                     <div className="space-y-2">
                       {auditReport.topActions.slice(0, 5).map((item, index) => (
                         <div key={index} className="flex items-center justify-between">
-                          <span className="text-sm">{item.action.replace(/_/g, ' ')}</span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{item.action.replace(/_/g, ' ')}</span>
                           <Badge variant="outline">{item.count}</Badge>
                         </div>
                       ))}
