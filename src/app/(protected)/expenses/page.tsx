@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,7 +88,7 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses();
-  }, [startDate, endDate, categoryFilter]);
+  }, [fetchExpenses]);
 
   useEffect(() => {
     if (transcript && !isListening) {
@@ -97,7 +97,7 @@ export default function ExpensesPage() {
     }
   }, [transcript, isListening, resetTranscript]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -215,7 +215,7 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate, categoryFilter]);
 
   const parseVoiceExpense = (voiceInput: string) => {
     const input = voiceInput.toLowerCase();

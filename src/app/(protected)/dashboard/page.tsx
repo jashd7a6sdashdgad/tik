@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,9 +27,7 @@ import {
   Briefcase,
   Building2,
   ArrowRight,
-  Brain,
-  Zap,
-  TrendingUp
+  Brain
 } from 'lucide-react';
 
 // Import new smart components
@@ -356,7 +355,7 @@ if (calendarResponse && calendarResponse.ok) {
               }).length;
             }
           }
-        } catch (error) {
+        } catch {
           console.log('Diary data not available');
         }
 
@@ -567,10 +566,12 @@ if (calendarResponse && calendarResponse.ok) {
             
             {/* Avatar Logo */}
             <div className="relative">
-              <img 
+              <Image 
                 src="/avatar.png" 
                 alt={t('personalAssistantAvatar')} 
-                className="w-12 h-12 rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+                width={48}
+                height={48}
+                className="rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
               />
             </div>
           </div>
@@ -738,10 +739,12 @@ if (calendarResponse && calendarResponse.ok) {
                   {isLoading ? (
                     <div className="animate-pulse bg-gray-300 h-12 w-12 rounded mx-auto"></div>
                   ) : dashboardData.weather?.icon ? (
-                    <img 
+                    <Image 
                       src={`https:${dashboardData.weather.icon}`} 
                       alt={dashboardData.weather.condition} 
-                      className="w-12 h-12 mx-auto"
+                      width={48}
+                      height={48}
+                      className="mx-auto"
                     />
                   ) : (
                     <Sun className={`h-8 w-8 mx-auto ${

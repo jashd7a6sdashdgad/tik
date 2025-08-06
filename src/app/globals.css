@@ -534,3 +534,267 @@ body {
   left: 0;
   right: auto;
 }
+
+/* Accessibility Enhancements */
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Skip Links */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--primary);
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 1000;
+  font-weight: 600;
+  transition: top 0.3s;
+  border: 2px solid transparent;
+}
+
+.skip-link:focus {
+  top: 6px;
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #111111;
+  --card-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #333333;
+  --secondary-foreground: #ffffff;
+  --muted: #222222;
+  --muted-foreground: #cccccc;
+  --border: #555555;
+  --input: #333333;
+  --ring: #ffffff;
+}
+
+.high-contrast * {
+  border-color: var(--border) !important;
+}
+
+.high-contrast img {
+  filter: contrast(1.2) brightness(1.1);
+}
+
+/* Contrast Levels */
+.contrast-high {
+  filter: contrast(1.3);
+}
+
+.contrast-highest {
+  filter: contrast(1.6);
+}
+
+/* Text Size Variations */
+.text-large {
+  font-size: 1.125em;
+  line-height: 1.6;
+}
+
+.text-xlarge {
+  font-size: 1.25em;
+  line-height: 1.7;
+}
+
+.text-large h1, .text-xlarge h1 { font-size: 2.5em; }
+.text-large h2, .text-xlarge h2 { font-size: 2em; }
+.text-large h3, .text-xlarge h3 { font-size: 1.5em; }
+
+/* Enhanced Focus Indicators */
+.enhanced-focus *:focus {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.enhanced-focus button:focus,
+.enhanced-focus [role="button"]:focus {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px rgba(61, 116, 182, 0.2);
+}
+
+.enhanced-focus input:focus,
+.enhanced-focus textarea:focus,
+.enhanced-focus select:focus {
+  outline: 3px solid var(--ring);
+  outline-offset: 1px;
+  border-color: var(--ring);
+}
+
+.enhanced-focus a:focus {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+/* Reduced Motion */
+.reduced-motion,
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ARIA Live Regions */
+[aria-live] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Voice Command Indicators */
+.voice-command-active {
+  animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.33); }
+  80%, 100% { opacity: 0; }
+}
+
+/* Screen Reader Announcements */
+.announcement-region {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Cognitive Assistance */
+.cognitive-helper {
+  border-left: 4px solid var(--primary);
+  background: rgba(61, 116, 182, 0.05);
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  counter-increment: step;
+}
+
+.step-indicator::before {
+  content: counter(step);
+  background: var(--primary);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Error and Success States for Screen Readers */
+[aria-invalid="true"] {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+[aria-describedby]:focus + [role="alert"] {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Touch Target Improvements */
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Simplified Interface Indicators */
+.simplified-mode {
+  --radius: 8px;
+}
+
+.simplified-mode button {
+  padding: 12px 24px;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.simplified-mode input {
+  padding: 12px;
+  font-size: 1.1em;
+}
+
+.simplified-mode .card {
+  border: 2px solid var(--border);
+  padding: 24px;
+}
+
+/* Keyboard Navigation Helpers */
+.keyboard-nav-visible:focus-within::after {
+  content: "Use Tab to navigate, Enter to select";
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  background: var(--background);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  z-index: 1000;
+}
+
+/* Print Styles for Accessibility */
+@media print {
+  .skip-link,
+  .sr-only {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip: auto !important;
+    white-space: normal !important;
+  }
+
+  .announcement-region {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+  }
+}

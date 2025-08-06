@@ -169,8 +169,37 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Token validation:', {
       hasAccessToken: !!tokens.access_token,
       hasRefreshToken: !!tokens.refresh_token,
-      tokenType: typeof tokens.access_token
+      tokenType: typeof tokens.access_token,
+      accessTokenLength: tokens.access_token?.length,
+      accessTokenPrefix: tokens.access_token?.substring(0, 20) + '...'
     });
+    
+    // Validate token format
+    if (!tokens.access_token || typeof tokens.access_token !== 'string') {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid access token format',
+        needsAuth: true
+      }, { status: 401 });
+    }
+    
+    try {
+      const auth = getAuthenticatedClient(tokens);
+      const drive = new GoogleDrive(auth);
+      
+      // Test authentication before proceeding
+      console.log('🔐 Testing Google Drive authentication...');
+      await drive.listFiles('', 1); // Quick auth test
+      console.log('✅ Google Drive authentication successful');
+    } catch (authError: any) {
+      console.error('❌ Authentication test failed:', authError.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Google Drive authentication failed - please reconnect',
+        needsAuth: true,
+        details: authError.message
+      }, { status: 401 });
+    }
     
     const auth = getAuthenticatedClient(tokens);
     const drive = new GoogleDrive(auth);

@@ -172,7 +172,7 @@ export class GoogleCalendarIntegration implements CalendarIntegration {
     const freeSlots: Date[] = [];
 
     // Simple free time detection algorithm
-    let currentTime = new Date(now);
+    const currentTime = new Date(now);
     const endTime = new Date(endOfDay);
 
     while (currentTime < endTime) {

@@ -1,0 +1,268 @@
+/* Personal Assistant Extension Content Styles */
+
+.pa-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.pa-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.pa-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pa-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.pa-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #718096;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.pa-modal-close:hover {
+  background-color: #f7fafc;
+  color: #2d3748;
+}
+
+.pa-modal-body {
+  padding: 24px;
+}
+
+.pa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pa-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pa-form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.pa-form-group input,
+.pa-form-group select,
+.pa-form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.pa-form-group input:focus,
+.pa-form-group select:focus,
+.pa-form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pa-form-group input[readonly] {
+  background-color: #f9fafb;
+  color: #6b7280;
+}
+
+.pa-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.pa-form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pa-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  font-family: inherit;
+}
+
+.pa-btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.pa-btn-primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.pa-btn-secondary {
+  background-color: white;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.pa-btn-secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.pa-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Meeting indicator */
+#pa-meeting-indicator {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading spinner */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .pa-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .pa-modal-header,
+  .pa-modal-body {
+    padding: 16px;
+  }
+  
+  .pa-form-actions {
+    flex-direction: column;
+  }
+  
+  .pa-btn {
+    width: 100%;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .pa-modal {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .pa-modal-header {
+    border-bottom-color: #374151;
+  }
+  
+  .pa-modal-header h3 {
+    color: #f9fafb;
+  }
+  
+  .pa-modal-close {
+    color: #9ca3af;
+  }
+  
+  .pa-modal-close:hover {
+    background-color: #374151;
+    color: #f3f4f6;
+  }
+  
+  .pa-form-group label {
+    color: #d1d5db;
+  }
+  
+  .pa-form-group input,
+  .pa-form-group select,
+  .pa-form-group textarea {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+  
+  .pa-form-group input:focus,
+  .pa-form-group select:focus,
+  .pa-form-group textarea:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  }
+  
+  .pa-form-group input[readonly] {
+    background-color: #4b5563;
+    color: #9ca3af;
+  }
+  
+  .pa-form-actions {
+    border-top-color: #374151;
+  }
+  
+  .pa-btn-secondary {
+    background-color: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+  }
+  
+  .pa-btn-secondary:hover {
+    background-color: #4b5563;
+    border-color: #6b7280;
+  }
+}

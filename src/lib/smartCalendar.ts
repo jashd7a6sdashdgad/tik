@@ -1,6 +1,8 @@
 // Smart Calendar Integration - Voice Scheduling and Intelligent Meeting Management
 
 import { workflowEngine } from './workflowEngine';
+import { locationServices, LocationData, TravelTimeResult } from './locationServices';
+import { meetingPreparationService, MeetingPreparationItem } from './meetingPreparation';
 
 export interface CalendarEvent {
   id: string;
@@ -415,6 +417,34 @@ export class SmartCalendarEngine {
     return null;
   }
 
+  // Enhanced location resolution method
+  private async resolveEventLocation(locationInput: string, eventTitle: string, eventType: string): Promise<EventLocation | null> {
+    try {
+      // Use location services to resolve and enhance location
+      const locationData = await locationServices.resolveLocation(locationInput);
+      
+      // Auto-detect location type if not specified
+      const detectedType = locationServices.autoDetectLocationType(eventTitle, eventType);
+      
+      return {
+        address: locationData.address,
+        coordinates: locationData.coordinates,
+        name: locationData.name,
+        type: (locationData.type as any) || detectedType,
+        parking: locationData.parking,
+        accessibility: locationData.accessibility
+      };
+      
+    } catch (error) {
+      console.error('Location resolution failed:', error);
+      return {
+        address: locationInput,
+        coordinates: { lat: 0, lng: 0 },
+        type: 'other'
+      };
+    }
+  }
+
   private parseRecurrenceFromText(text: string): RecurrenceRule | null {
     const frequencyMatches = this.findPatternMatches(text, 'frequency');
     
@@ -657,8 +687,17 @@ export class SmartCalendarEngine {
       ...eventData
     };
 
-    // Auto-add travel time if location is specified
+    // Enhanced location resolution and travel time calculation
     if (event.location && this.preferences.autoAddTravelTime) {
+      // Resolve location details
+      if (typeof event.location === 'string') {
+        const resolvedLocation = await this.resolveEventLocation(event.location, event.title, event.category);
+        if (resolvedLocation) {
+          event.location = resolvedLocation;
+        }
+      }
+      
+      // Calculate travel time
       const travelTime = await this.calculateTravelTime(event);
       if (travelTime) {
         event.travelTime = travelTime;
@@ -768,7 +807,7 @@ export class SmartCalendarEngine {
     return true;
   }
 
-  // Location and Travel Time Methods
+  // Enhanced Location and Travel Time Methods
   private async calculateTravelTime(event: CalendarEvent): Promise<TravelTimeInfo | null> {
     if (!event.location?.address) return null;
 
@@ -780,17 +819,22 @@ export class SmartCalendarEngine {
     }
 
     try {
-      // Simulate travel time calculation (would use Google Maps API in real implementation)
-      const estimatedDuration = this.estimateTravelTime(this.preferences.defaultLocation, event.location.address);
+      // Use enhanced location services for accurate travel time
+      const travelResult = await locationServices.calculateTravelTime(
+        this.preferences.defaultLocation,
+        event.location.address,
+        'driving',
+        event.startTime
+      );
       
       const travelInfo: TravelTimeInfo = {
         origin: this.preferences.defaultLocation,
         destination: event.location.address,
-        estimatedDuration,
-        transportMode: 'driving',
-        departureTime: new Date(event.startTime.getTime() - estimatedDuration * 60 * 1000),
-        arrivalTime: event.startTime,
-        route: `Route from ${this.preferences.defaultLocation} to ${event.location.address}`
+        estimatedDuration: travelResult.duration,
+        transportMode: travelResult.mode,
+        departureTime: travelResult.departureTime,
+        arrivalTime: travelResult.arrivalTime,
+        route: travelResult.route.summary
       };
 
       // Cache the result
@@ -799,8 +843,22 @@ export class SmartCalendarEngine {
       return travelInfo;
     } catch (error) {
       console.error('Failed to calculate travel time:', error);
-      return null;
+      return this.createFallbackTravelTime(event);
     }
+  }
+
+  private createFallbackTravelTime(event: CalendarEvent): TravelTimeInfo {
+    const estimatedDuration = this.estimateTravelTime(this.preferences.defaultLocation, event.location?.address || '');
+    
+    return {
+      origin: this.preferences.defaultLocation,
+      destination: event.location?.address || '',
+      estimatedDuration,
+      transportMode: 'driving',
+      departureTime: new Date(event.startTime.getTime() - estimatedDuration * 60 * 1000),
+      arrivalTime: event.startTime,
+      route: `Estimated route from ${this.preferences.defaultLocation} to ${event.location?.address}`
+    };
   }
 
   private estimateTravelTime(origin: string, destination: string): number {
@@ -825,8 +883,35 @@ export class SmartCalendarEngine {
     return 25; // Default 25 minutes
   }
 
-  // Meeting Preparation Methods
+  // Enhanced Meeting Preparation Methods
   private async generateMeetingPreparation(event: CalendarEvent): Promise<PreparationItem[]> {
+    try {
+      // Use the enhanced meeting preparation service
+      const attendeeEmails = event.attendees.map(a => a.email);
+      const preparationItems = await meetingPreparationService.prepareMeeting(
+        event.title,
+        attendeeEmails,
+        event.startTime,
+        event.description
+      );
+
+      // Convert to the existing PreparationItem format
+      return preparationItems.map(item => ({
+        type: item.type,
+        title: item.title,
+        content: item.content || '',
+        url: item.url,
+        priority: item.priority,
+        completed: item.completed
+      }));
+
+    } catch (error) {
+      console.error('Enhanced meeting preparation failed, using fallback:', error);
+      return this.generateFallbackMeetingPreparation(event);
+    }
+  }
+
+  private generateFallbackMeetingPreparation(event: CalendarEvent): PreparationItem[] {
     const items: PreparationItem[] = [];
 
     // Add agenda preparation
@@ -910,6 +995,16 @@ export class SmartCalendarEngine {
     } catch (error) {
       console.error('Failed to load events from storage:', error);
     }
+  }
+
+  // Enhanced public method to check time slot availability
+  async checkTimeSlotAvailability(startTime: Date, durationMinutes: number): Promise<boolean> {
+    return this.isTimeSlotAvailable(startTime, durationMinutes);
+  }
+
+  // Method to suggest available times with better filtering
+  async getAvailableTimeSlots(intent: SchedulingIntent): Promise<Date[]> {
+    return this.suggestAvailableTimes(intent);
   }
 
   // Public API Methods

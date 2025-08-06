@@ -205,6 +205,98 @@ export class VoiceCommandProcessor {
         description: 'Explain assistant capabilities'
       },
 
+      // Enhanced Calendar Scheduling Commands
+      {
+        pattern: /^(book|schedule|add|create|plan).*(gym|workout|exercise|fitness|yoga|run|training).*(every|daily|weekly).*(monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week)/i,
+        action: 'schedule_recurring_activity',
+        handler: (matches, transcript) => {
+          return {
+            action: 'schedule_recurring_activity',
+            response: this.getRecurringScheduleResponse(transcript),
+            confidence: 0.9,
+            shouldSpeak: true,
+            data: { 
+              transcript,
+              type: 'fitness',
+              recurring: true
+            }
+          };
+        },
+        examples: ['Book 1 hour for gym every Tuesday', 'Schedule workout every Monday at 6 PM', 'Add yoga session every Wednesday'],
+        description: 'Schedule recurring fitness activities'
+      },
+
+      {
+        pattern: /^(book|schedule|add|create|plan).*(meeting|call|appointment|interview|presentation).*(every|daily|weekly).*(monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week)/i,
+        action: 'schedule_recurring_meeting',
+        handler: (matches, transcript) => {
+          return {
+            action: 'schedule_recurring_meeting',
+            response: this.getRecurringScheduleResponse(transcript),
+            confidence: 0.9,
+            shouldSpeak: true,
+            data: { 
+              transcript,
+              type: 'meeting',
+              recurring: true
+            }
+          };
+        },
+        examples: ['Schedule team meeting every Friday at 10 AM', 'Book status call every Monday', 'Add weekly review every Thursday'],
+        description: 'Schedule recurring meetings and calls'
+      },
+
+      {
+        pattern: /^(book|schedule|add|create|plan).*(for|at).*(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week|this week)/i,
+        action: 'schedule_event',
+        handler: (matches, transcript) => {
+          return {
+            action: 'schedule_event',
+            response: this.getScheduleResponse(transcript),
+            confidence: 0.85,
+            shouldSpeak: true,
+            data: { 
+              transcript,
+              recurring: false
+            }
+          };
+        },
+        examples: ['Book dentist appointment tomorrow at 3 PM', 'Schedule lunch meeting today', 'Add gym session this Friday'],
+        description: 'Schedule one-time events'
+      },
+
+      {
+        pattern: /^(check|find|look for|show me).*(conflicts|available|free time|schedule|calendar)/i,
+        action: 'check_conflicts',
+        handler: (matches, transcript) => {
+          return {
+            action: 'check_conflicts',
+            response: 'Let me check your calendar for conflicts and available time slots.',
+            confidence: 0.9,
+            shouldSpeak: true,
+            data: { transcript }
+          };
+        },
+        examples: ['Check for conflicts', 'Find available time', 'Show me free time slots'],
+        description: 'Check calendar conflicts and availability'
+      },
+
+      {
+        pattern: /^(prepare|get ready|setup).*(meeting|call|appointment|interview)/i,
+        action: 'prepare_meeting',
+        handler: (matches, transcript) => {
+          return {
+            action: 'prepare_meeting',
+            response: 'I\'ll help you prepare for your upcoming meeting by gathering relevant emails and documents.',
+            confidence: 0.85,
+            shouldSpeak: true,
+            data: { transcript }
+          };
+        },
+        examples: ['Prepare for meeting', 'Get ready for call', 'Setup for interview'],
+        description: 'Prepare for upcoming meetings'
+      },
+
       // General conversation and questions
       {
         pattern: /^(.*)/i,
@@ -296,6 +388,26 @@ export class VoiceCommandProcessor {
   private getConversationalResponse(transcript: string): string {
     // Use narrator personality for contextual responses
     return narratorPersonality.getContextualResponse('learning', transcript);
+  }
+
+  private getRecurringScheduleResponse(transcript: string): string {
+    const responses = [
+      "Perfect! I'll help you set up that recurring schedule. Let me process the details and create this recurring event for you.",
+      "Great idea to stay consistent! I'm setting up your recurring schedule now with smart conflict detection.",
+      "I love helping with routine planning! I'll create this recurring event and make sure it doesn't conflict with your existing schedule.",
+      "Excellent planning ahead! Let me set up this recurring schedule and I'll check for any potential conflicts."
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+
+  private getScheduleResponse(transcript: string): string {
+    const responses = [
+      "I'll schedule that right away! Let me check for conflicts and find the perfect time slot for you.",
+      "Consider it done! I'm processing your scheduling request and will auto-add travel time if needed.",
+      "Great! I'm setting up your appointment and will prepare any relevant meeting materials.",
+      "Perfect timing! Let me schedule that for you and I'll make sure everything is prepared in advance."
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
   }
 
   private getUnknownCommandResponse(transcript: string): string {

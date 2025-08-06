@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { Readable } from 'stream';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar',
@@ -411,47 +412,94 @@ export class GoogleDrive {
       folderId
     });
 
+    // Validate inputs
+    if (!fileName || !fileName.trim()) {
+      throw new Error('File name is required');
+    }
+    if (!mimeType || !mimeType.startsWith('image/')) {
+      throw new Error('Invalid mime type - must be an image');
+    }
+    if (!buffer || buffer.length === 0) {
+      throw new Error('File buffer is empty or invalid');
+    }
+
     const fileMetadata: any = {
-      name: fileName,
+      name: fileName.trim(),
     };
     
     if (folderId) {
       fileMetadata.parents = [folderId];
     }
 
+    // Convert buffer to readable stream for better compatibility
+    const bufferStream = new Readable();
+    bufferStream.push(buffer);
+    bufferStream.push(null);
+
     const media = {
       mimeType,
-      body: buffer,
+      body: bufferStream,
     };
 
     console.log('📤 Calling Google Drive API with:', {
       metadata: fileMetadata,
       mediaType: mimeType,
-      bodySize: buffer.length
+      bodySize: buffer.length,
+      hasParents: !!folderId
     });
 
     try {
+      // Test auth first
+      await this.drive.about.get({ fields: 'user' });
+      console.log('✅ Google Drive authentication verified');
+
       const response = await this.drive.files.create({
         resource: fileMetadata,
         media: media,
         fields: 'id, name, size, mimeType, createdTime, webViewLink, webContentLink, thumbnailLink',
+        uploadType: 'multipart'
       });
 
       console.log('✅ Google Drive API response:', {
         id: response.data.id,
         name: response.data.name,
-        size: response.data.size
+        size: response.data.size,
+        mimeType: response.data.mimeType
       });
 
       return response.data;
     } catch (error: any) {
-      console.error('❌ Google Drive API error:', {
+      console.error('❌ Google Drive API upload error:', {
         message: error.message,
         code: error.code,
         status: error.status,
-        response: error.response?.data
+        statusText: error.statusText,
+        response: error.response?.data,
+        config: error.config ? {
+          method: error.config.method,
+          url: error.config.url,
+          headers: Object.keys(error.config.headers || {})
+        } : undefined
       });
-      throw error;
+
+      // Provide more specific error messages
+      if (error.code === 401 || error.message?.includes('unauthorized')) {
+        throw new Error('Google Drive authentication failed - please reconnect your account');
+      }
+      if (error.code === 403) {
+        throw new Error('Google Drive access denied - check permissions');
+      }  
+      if (error.code === 429) {
+        throw new Error('Google Drive API rate limit exceeded - please try again later');
+      }
+      if (error.message?.includes('quota')) {
+        throw new Error('Google Drive storage quota exceeded');
+      }
+      if (error.message?.includes('network') || error.code === 'ENOTFOUND') {
+        throw new Error('Network error - check your internet connection');
+      }
+
+      throw new Error(`Google Drive upload failed: ${error.message}`);
     }
   }
 

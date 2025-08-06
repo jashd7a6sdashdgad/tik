@@ -1,0 +1,163 @@
+{
+  "name": "Mahboob Personal Assistant",
+  "short_name": "MahboobPA",
+  "description": "Your comprehensive personal assistant for managing expenses, contacts, shopping lists, diary entries, and more with AI-powered features.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["productivity", "finance", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Expense",
+      "short_name": "Expense",
+      "description": "Quickly add a new expense",
+      "url": "/expenses?action=add",
+      "icons": [
+        {
+          "src": "/icons/expense-shortcut.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Shopping List",
+      "short_name": "Shopping",
+      "description": "View shopping list",
+      "url": "/shopping-list",
+      "icons": [
+        {
+          "src": "/icons/shopping-shortcut.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Add Contact",
+      "short_name": "Contact",
+      "description": "Add new contact",
+      "url": "/contacts?action=add",
+      "icons": [
+        {
+          "src": "/icons/contact-shortcut.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Voice Note",
+      "short_name": "Voice",
+      "description": "Record voice note",
+      "url": "/diary?action=voice",
+      "icons": [
+        {
+          "src": "/icons/voice-shortcut.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop-main.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Main dashboard view"
+    },
+    {
+      "src": "/screenshots/mobile-expenses.png",
+      "sizes": "414x896",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Expenses management on mobile"
+    }
+  ],
+  "features": [
+    "offline-support",
+    "cross-platform-sync",
+    "ai-powered-ocr",
+    "voice-input",
+    "multi-language",
+    "dark-mode"
+  ],
+  "permissions": [
+    "camera",
+    "microphone",
+    "storage",
+    "notifications",
+    "background-sync"
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+mahboobpa",
+      "url": "/?handler=%s"
+    }
+  ]
+}

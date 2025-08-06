@@ -33,6 +33,9 @@ export default function CalendarPage() {
   const [newEventEnd, setNewEventEnd] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showConflicts, setShowConflicts] = useState(false);
 
   const { 
     isListening, 
@@ -75,28 +78,46 @@ export default function CalendarPage() {
   const createEvent = async (naturalLanguage = false) => {
     setCreating(true);
     try {
-      const payload = naturalLanguage 
-        ? { naturalLanguage: naturalLanguageInput }
-        : {
-            event: {
-              summary: newEventTitle,
-              description: newEventDescription,
-              start: {
-                dateTime: new Date(newEventStart).toISOString(),
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              },
-              end: {
-                dateTime: new Date(newEventEnd).toISOString(),
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              }
+      let response;
+      
+      if (naturalLanguage && naturalLanguageInput.trim()) {
+        // Use smart calendar scheduling for natural language input
+        response = await fetch('/api/calendar/smart-schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'process_voice_scheduling',
+            voiceInput: naturalLanguageInput
+          })
+        });
+      } else {
+        // Check for conflicts first with manual input
+        if (newEventStart && newEventEnd) {
+          await checkConflicts();
+        }
+        
+        // Use regular calendar creation
+        const payload = {
+          event: {
+            summary: newEventTitle,
+            description: newEventDescription,
+            start: {
+              dateTime: new Date(newEventStart).toISOString(),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            },
+            end: {
+              dateTime: new Date(newEventEnd).toISOString(),
+              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             }
-          };
+          }
+        };
 
-      const response = await fetch('/api/calendar/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        response = await fetch('/api/calendar/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
 
       const data = await response.json();
       
@@ -108,6 +129,16 @@ export default function CalendarPage() {
         setNewEventStart('');
         setNewEventEnd('');
         setNaturalLanguageInput('');
+        setConflicts([]);
+        setSuggestions([]);
+        setShowConflicts(false);
+        
+        // Show success message with smart features info
+        if (data.data?.event?.conflictResolution?.length > 0) {
+          alert('Event created successfully! I found some conflicts and adjusted the timing.');
+        } else if (data.data?.event?.travelTime) {
+          alert('Event created successfully! Travel time has been automatically calculated and added.');
+        }
       } else {
         alert(t('settingsError') + ': ' + data.message);
       }
@@ -116,6 +147,39 @@ export default function CalendarPage() {
       alert(t('settingsError'));
     } finally {
       setCreating(false);
+    }
+  };
+
+  const checkConflicts = async () => {
+    if (!newEventStart || !newEventEnd) return;
+    
+    try {
+      const response = await fetch('/api/calendar/smart-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_conflicts',
+          eventData: {
+            startTime: new Date(newEventStart).toISOString(),
+            endTime: new Date(newEventEnd).toISOString(),
+            title: newEventTitle || 'New Event'
+          }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.data.hasConflicts) {
+        setConflicts(data.data.conflicts);
+        setSuggestions(data.data.suggestions);
+        setShowConflicts(true);
+      } else {
+        setConflicts([]);
+        setSuggestions([]);
+        setShowConflicts(false);
+      }
+    } catch (error) {
+      console.error('Error checking conflicts:', error);
     }
   };
 
@@ -261,10 +325,15 @@ export default function CalendarPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Create with Voice */}
-        <Card className="mb-8">
+        <Card className="mb-8 border-blue-200 bg-blue-50/30">
           <CardHeader>
-            <CardTitle>{t('createEvent')}</CardTitle>
-            <CardDescription>{t('settingsDescription')}</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              {t('createEvent')} 
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                🧠 Smart Scheduling
+              </span>
+            </CardTitle>
+            <CardDescription>{t('settingsDescription')} Try: "Book 1 hour for gym every Tuesday at 6 PM"</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
@@ -300,6 +369,71 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
+        {/* Smart Features: Conflict Detection */}
+        {showConflicts && conflicts.length > 0 && (
+          <Card className="mb-8 border-orange-200 bg-orange-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center text-orange-700">
+                <Clock className="h-5 w-5 mr-2" />
+                Scheduling Conflicts Detected
+              </CardTitle>
+              <CardDescription>
+                I found {conflicts.length} conflict(s) with your existing events. Here are some suggestions:
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Show conflicts */}
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Conflicting Events:</h4>
+                {conflicts.map((conflict, index) => (
+                  <div key={index} className="p-3 bg-white rounded border-l-4 border-orange-400">
+                    <p className="font-medium">{conflict.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(conflict.startTime).toLocaleString()} - {new Date(conflict.endTime).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Show suggestions */}
+              {suggestions.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Suggested Alternative Times:</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {suggestions.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const suggestedTime = new Date(suggestion);
+                          const endTime = new Date(suggestedTime.getTime() + 60 * 60 * 1000); // 1 hour later
+                          setNewEventStart(suggestedTime.toISOString().slice(0, 16));
+                          setNewEventEnd(endTime.toISOString().slice(0, 16));
+                          setShowConflicts(false);
+                        }}
+                        className="justify-start"
+                      >
+                        {new Date(suggestion).toLocaleString()}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowConflicts(false)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Create/Edit Event Form Modal */}
         {showCreateForm && (
           <Card className="mb-8 border-primary/20">
@@ -326,7 +460,13 @@ export default function CalendarPage() {
                   <Input
                     type="datetime-local"
                     value={newEventStart}
-                    onChange={(e) => setNewEventStart(e.target.value)}
+                    onChange={(e) => {
+                      setNewEventStart(e.target.value);
+                      // Auto-check conflicts when time changes
+                      if (e.target.value && newEventEnd) {
+                        setTimeout(() => checkConflicts(), 500);
+                      }
+                    }}
                     className="text-black"
                   />
                 </div>
@@ -335,11 +475,49 @@ export default function CalendarPage() {
                   <Input
                     type="datetime-local"
                     value={newEventEnd}
-                    onChange={(e) => setNewEventEnd(e.target.value)}
+                    onChange={(e) => {
+                      setNewEventEnd(e.target.value);
+                      // Auto-check conflicts when time changes
+                      if (newEventStart && e.target.value) {
+                        setTimeout(() => checkConflicts(), 500);
+                      }
+                    }}
                     className="text-black"
                   />
                 </div>
               </div>
+              
+              {/* Real-time conflict indicator in manual form */}
+              {showConflicts && conflicts.length > 0 && (
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-orange-700 mb-2">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">⚠️ Time Conflict Detected</span>
+                  </div>
+                  <p className="text-sm text-orange-600 mb-2">
+                    This time conflicts with {conflicts.length} existing event(s).
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {suggestions.slice(0, 3).map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const suggestedTime = new Date(suggestion);
+                          const endTime = new Date(suggestedTime.getTime() + 60 * 60 * 1000);
+                          setNewEventStart(suggestedTime.toISOString().slice(0, 16));
+                          setNewEventEnd(endTime.toISOString().slice(0, 16));
+                          setShowConflicts(false);
+                        }}
+                        className="text-xs"
+                      >
+                        {new Date(suggestion).toLocaleTimeString()}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button
                   onClick={editingEvent ? updateEvent : () => createEvent(false)}

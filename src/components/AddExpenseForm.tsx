@@ -43,21 +43,42 @@ export default function AddExpenseForm({ onAdded }: { onAdded: () => void }) {
     { key: 'general', value: 'General' }
   ];
 
-  // Handle image selection and OCR processing via binary data
+  // Handle image selection and OCR processing via optimized base64 data
   const handleImageSelected = async (base64: string, mimeType: string, fileName: string) => {
+    console.log('🖼️ Processing image:', { fileName, mimeType, base64Length: base64.length });
+    
     // Ensure base64 string is properly formatted
     let cleanBase64 = base64;
     if (!base64.startsWith('data:')) {
       cleanBase64 = `data:${mimeType};base64,${base64}`;
     }
     
-    // Convert base64 to binary data safely
+    // Extract and validate base64 data
+    let base64Data: string;
     try {
-      const base64Data = cleanBase64.split(',')[1];
-      if (!base64Data) {
-        throw new Error('Invalid base64 format');
+      base64Data = cleanBase64.split(',')[1];
+      if (!base64Data || base64Data.length === 0) {
+        throw new Error('Invalid base64 format - no data found');
       }
       
+      // Validate base64 string
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
+        throw new Error('Invalid base64 characters detected');
+      }
+      
+      // Test base64 decoding
+      const testDecode = atob(base64Data.slice(0, 100)); // Test first 100 chars
+      console.log('✅ Base64 validation successful, decoded length:', testDecode.length);
+      
+    } catch (validationError) {
+      console.error('❌ Base64 validation failed:', validationError);
+      setImageError('Invalid image format. Please try a different image.');
+      setProcessingOCR(false);
+      return;
+    }
+    
+    // Convert to File for local preview
+    try {
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -73,138 +94,215 @@ export default function AddExpenseForm({ onAdded }: { onAdded: () => void }) {
       });
       setImageError(null);
       setProcessingOCR(true);
+      
+      console.log('📤 Sending image to N8n for OCR processing...', {
+        fileName,
+        mimeType,
+        base64Length: base64Data.length,
+        fileSizeKB: Math.round(byteArray.length / 1024)
+      });
     
-    // Send data to N8n for OCR processing with fallback approaches
+    // Send data to N8n for OCR processing with improved error handling
     try {
-      let response;
       let result;
       
-      // Try Method 1: Binary data
-      try {
-        response = await fetch('/api/n8n/webhook', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/octet-stream',
-            'X-File-Name': fileName,
-            'X-File-Type': mimeType,
-            'X-Request-Type': 'expense_ocr',
-            'X-Context': 'expense_receipt_ocr'
-          },
-          body: byteArray
-        });
+      // Use optimized base64 method with proper formatting
+      const response = await fetch('/api/n8n/webhook', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          type: 'expense_ocr',
+          action: 'extract_data',
+          data: {
+            image: base64Data, // Send clean base64 without data URL prefix
+            imageBase64: base64Data, // Alternative field name for compatibility
+            fileName: fileName,
+            mimeType: mimeType,
+            fileSize: byteArray.length,
+            timestamp: new Date().toISOString(),
+            context: 'expense_receipt_ocr',
+            autoFill: true,
+            // OCR prompt for AI processing
+            prompt: `What's in this image? and get all of these parameters please
 
-        if (response.ok) {
-          result = await response.json();
-        } else {
-          throw new Error('Binary method failed');
-        }
-      } catch (binaryError) {
-        console.warn('Binary method failed, trying base64 method:', binaryError);
-        
-        try {
-          // Try Method 2: Base64 in JSON (fallback)
-          response = await fetch('/api/n8n/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'expense_ocr',
-              action: 'extract_data',
-              data: {
-                imageBase64: cleanBase64,
-                fileName: fileName,
-                mimeType: mimeType,
-                timestamp: new Date().toISOString(),
-                context: 'expense_receipt_ocr',
-                autoFill: true
-              }
-            })
-          });
+Please fill in description and either credit or debit amount
 
-          if (!response.ok) {
-            throw new Error(`Base64 method failed. Status: ${response.status}`);
-          }
+Source,
+Credit Amount or
+Debit Amount,
+Category,
+Description.
 
-          result = await response.json();
-        } catch (base64Error) {
-          console.warn('Base64 method also failed, using mock data for testing:', base64Error);
-          
-          // Method 3: Mock response for testing (when N8n is not available)
-          result = {
-            success: true,
-            data: {
-              from: "Bank of Oman",
-              debitAmount: 25.50,
-              creditAmount: 0,
-              category: "Food",
-              availableBalance: 1250.75,
-              transactionId: `TXN_${Date.now()}`
+ok so t for the credet and debit try to anylize if its credet or debit then and same with debit 
+
+ONLY WRITE THE INFORMATION DO NOT EKNOLEDGE MNE
+
+for example respond like this:
+
+Source is basicly source
+
+C means credit and D means debit so like: D 123 C 123
+
+there is 10 options for category:
+Food,
+Transportation,
+Business,
+Medical,
+Entertainment,
+Shopping,
+Utilities,
+Travel,
+Education,
+General.
+
+AND ONLY GIVE OUT ONE ANSWER FOR ONE PRODUCT IF THERE IS MORE THEN MAKE MORE THAT ONE BREAKDOWN
+
+Description is the name that will be displayed 
+
+ONLY WRITE THE INFORMATION DO NOT EKNOLEDGE MNE AND DO NOT SAY STUF LIKE THIS:
+
+Here's the breakdown
+
+Ok Sure 
+
+I got it
+
+HEre the answer you are looking for.`,
+            // Additional metadata for N8n processing
+            imageMetadata: {
+              width: 0, // Will be detected by N8n
+              height: 0, // Will be detected by N8n
+              format: mimeType.split('/')[1],
+              sizeKB: Math.round(byteArray.length / 1024)
             }
-          };
-          
-          console.log('Using mock OCR data for testing');
-        }
+          }
+        })
+      });
+
+      console.log('📡 N8n response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ N8n API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`N8n API failed (${response.status}): ${errorText.slice(0, 200)}`);
       }
-      
-      console.log('N8n response:', result);
+
+      result = await response.json();
+      console.log('✅ N8n response received:', result);
       
       // Auto-fill form fields with extracted data
       if (result && result.success && result.data) {
-        const extractedData = result.data;
+        const responseText = result.data.response || result.data.message || result.data.text || '';
+        console.log('🎯 Parsing AI OCR response:', responseText);
         
-        // Fill form fields automatically
-        if (extractedData.from) setFrom(extractedData.from);
-        if (extractedData.creditAmount) setCreditAmount(extractedData.creditAmount.toString());
-        if (extractedData.debitAmount) setDebitAmount(extractedData.debitAmount.toString());
-        if (extractedData.category) setCategory(extractedData.category);
-        if (extractedData.availableBalance) setAvailableBalance(extractedData.availableBalance.toString());
-        if (extractedData.transactionId) setId(extractedData.transactionId);
+        // Parse the specific format: "C 18.000\nGeneral\nPAYMENT RECEIVED - THANK YOU"
+        const lines = responseText.split('\n').filter(line => line.trim());
         
-        // Show success message
-        console.log('Receipt data extracted and form auto-filled successfully');
-        setAutoFilled(true);
-        
-        // Focus on description field for user to complete
-        setTimeout(() => {
-          const descriptionInput = document.querySelector('input[placeholder*="description"]') as HTMLInputElement;
-          if (descriptionInput) {
-            descriptionInput.focus();
+        if (lines.length >= 3) {
+          // Parse first line for credit/debit amount
+          const amountLine = lines[0].trim();
+          const amountMatch = amountLine.match(/^([CD])\s+(\d+(?:\.\d+)?)$/);
+          
+          if (amountMatch) {
+            const [, type, amount] = amountMatch;
+            if (type === 'C') {
+              setCreditAmount(amount);
+              setDebitAmount('');
+            } else if (type === 'D') {
+              setDebitAmount(amount);
+              setCreditAmount('');
+            }
           }
-        }, 100);
+          
+          // Parse second line for category
+          const categoryText = lines[1].trim();
+          const validCategory = categories.find(cat => 
+            cat.value.toLowerCase() === categoryText.toLowerCase()
+          );
+          if (validCategory) {
+            setCategory(validCategory.value);
+          }
+          
+          // Parse third line for description
+          const descriptionText = lines[2].trim();
+          if (descriptionText) {
+            setDescription(descriptionText);
+          }
+          
+          console.log('✅ Parsed OCR data:', {
+            type: amountMatch?.[1],
+            amount: amountMatch?.[2],
+            category: categoryText,
+            description: descriptionText
+          });
+          
+          setAutoFilled(true);
+          
+          // Focus on form for user to verify
+          setTimeout(() => {
+            const descriptionInput = document.querySelector('input[placeholder*="description"]') as HTMLInputElement;
+            if (descriptionInput) {
+              descriptionInput.focus();
+            }
+          }, 500);
+        } else {
+          console.warn('⚠️ Unexpected OCR response format:', responseText);
+          setImageError('OCR data format unexpected. Please fill form manually.');
+        }
+        
       } else {
-        console.warn('OCR extraction failed or no data returned. Response:', result);
+        console.warn('⚠️ OCR extraction failed or no data returned. Response:', result);
         
-        // For now, just upload the image without OCR and let user fill manually
-        setImageError('OCR processing is not available. Image saved, please fill the form manually.');
+        // Check if it's a configuration issue
+        if (result?.message?.includes('N8n webhook URL not configured')) {
+          setImageError('OCR service not configured. Image saved, please fill the form manually.');
+        } else {
+          setImageError('OCR processing failed. Image saved, please fill the form manually.');
+        }
         
-        // Auto-fill with some basic info if possible
-        const currentDate = new Date().toISOString().split('T')[0];
-        if (!from) setFrom(''); // Keep empty for user to fill
+        // Still allow manual entry with the image attached
+        console.log('📝 User can still fill form manually with image attached');
       }
-    } catch (error) {
-      console.error('Failed to process receipt image. Full error:', error);
       
-      // Provide more specific error message
-      let errorMessage = 'Failed to process image. ';
+    } catch (error) {
+      console.error('❌ Failed to process receipt image:', error);
+      
+      // Provide detailed error message based on error type
+      let errorMessage = 'Failed to process image: ';
       if (error instanceof Error) {
         if (error.message.includes('Failed to fetch')) {
-          errorMessage += 'Network connection issue. Please check your connection.';
+          errorMessage += 'Network connection issue. Check your connection and try again.';
         } else if (error.message.includes('404')) {
-          errorMessage += 'OCR service not found. Please fill the form manually.';
+          errorMessage += 'OCR service not found. Image saved, fill form manually.';
         } else if (error.message.includes('500')) {
-          errorMessage += 'Server error. Please try again or fill manually.';
+          errorMessage += 'Server error. Try again or fill form manually.';
+        } else if (error.message.includes('N8n API failed')) {
+          errorMessage += 'OCR service error. Image saved, fill form manually.';
         } else {
-          errorMessage += 'Please fill the form manually.';
+          errorMessage += `${error.message}. Image saved, fill form manually.`;
         }
       } else {
-        errorMessage += 'Please fill the form manually.';
+        errorMessage += 'Unknown error. Image saved, fill form manually.';
       }
       
       setImageError(errorMessage);
+      
+      // Even if OCR fails, the image is still attached for reference
+      console.log('📷 Image still available for manual processing');
+      
     } finally {
       setProcessingOCR(false);
     }
+    
     } catch (conversionError) {
-      console.error('Base64 conversion error:', conversionError);
+      console.error('❌ Base64 conversion error:', conversionError);
       setImageError('Failed to process image format. Please try a different image.');
       setProcessingOCR(false);
     }

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { smartCalendar } from '@/lib/smartCalendar';
+import { VoiceCommandProcessor } from '@/lib/voiceCommandProcessor';
 
 interface VoiceMessage {
   text: string;
@@ -114,18 +116,19 @@ export async function POST(request: NextRequest) {
     } catch (n8nError) {
       console.error('❌ N8N webhook error:', n8nError);
       
-      // Fallback to local processing if N8N fails
-      console.log('🔄 Falling back to local processing...');
+      // Fallback to local smart processing if N8N fails
+      console.log('🔄 Falling back to smart local processing...');
       
-      const fallbackResponse = generateFallbackResponse(message, language);
+      const smartResponse = await processSmartCommand(message, language);
       
       return NextResponse.json({
         success: true,
-        response: fallbackResponse,
+        response: smartResponse.response,
         audioUrl: null,
         timestamp: new Date().toISOString(),
-        source: 'fallback',
-        warning: 'N8N unavailable, using fallback response'
+        source: 'smart_local',
+        data: smartResponse.data,
+        warning: 'N8N unavailable, using smart local processing'
       });
     }
 
@@ -138,6 +141,175 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
+}
+
+// Smart command processor
+async function processSmartCommand(message: string, language: string): Promise<{ response: string; data?: any }> {
+  try {
+    console.log('🧠 Processing smart command:', message);
+    
+    // Initialize voice command processor
+    const voiceProcessor = new VoiceCommandProcessor();
+    const commandResult = voiceProcessor.processCommand(message);
+    
+    if (!commandResult) {
+      return { response: generateFallbackResponse(message, language) };
+    }
+    
+    console.log('🎯 Command action detected:', commandResult.action);
+    
+    // Handle smart calendar commands
+    if (commandResult.action === 'schedule_recurring_activity' || 
+        commandResult.action === 'schedule_recurring_meeting' || 
+        commandResult.action === 'schedule_event') {
+      
+      try {
+        // Process voice scheduling through smart calendar
+        const schedulingResult = await smartCalendar.processVoiceScheduling(message);
+        
+        if (schedulingResult.confidence > 0.7) {
+          // High confidence - create the event
+          const eventData = convertIntentToEventData(schedulingResult);
+          const createdEvent = await smartCalendar.createEvent(eventData);
+          
+          const successMessage = language === 'ar' 
+            ? `تم! لقد جدولت "${createdEvent.title}" بنجاح. ${createdEvent.conflictResolution && createdEvent.conflictResolution.length > 0 ? 'وجدت بعض التعارضات ولكن اقترحت أوقاتاً بديلة.' : ''}`
+            : `Done! I've successfully scheduled "${createdEvent.title}". ${createdEvent.conflictResolution && createdEvent.conflictResolution.length > 0 ? 'I found some conflicts but suggested alternative times.' : ''}`;
+          
+          return {
+            response: successMessage,
+            data: {
+              action: 'event_created',
+              event: createdEvent,
+              schedulingRequest: schedulingResult
+            }
+          };
+        } else {
+          // Low confidence - ask for clarification
+          const clarificationMessage = language === 'ar'
+            ? `أحتاج إلى توضيح بعض التفاصيل لجدولة هذا الحدث بشكل مثالي. ${schedulingResult.ambiguities.join(', ')}`
+            : `I need some clarification to schedule this event perfectly. ${schedulingResult.ambiguities.join(', ')}`;
+          
+          return {
+            response: clarificationMessage,
+            data: {
+              action: 'clarification_needed',
+              schedulingRequest: schedulingResult
+            }
+          };
+        }
+      } catch (calendarError) {
+        console.error('Calendar processing error:', calendarError);
+        const errorMessage = language === 'ar'
+          ? 'عذراً، حدث خطأ أثناء جدولة الحدث. يرجى المحاولة مرة أخرى.'
+          : 'Sorry, there was an error scheduling the event. Please try again.';
+        
+        return { response: errorMessage };
+      }
+    }
+    
+    // Handle conflict checking
+    if (commandResult.action === 'check_conflicts') {
+      try {
+        // Get events for conflict checking
+        const today = new Date();
+        const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const events = smartCalendar.getEvents(today, nextWeek);
+        
+        const conflictMessage = language === 'ar'
+          ? `لديك ${events.length} أحداث مجدولة في الأسبوع القادم. هل تريد التحقق من وقت محدد؟`
+          : `You have ${events.length} events scheduled for the next week. Would you like me to check a specific time?`;
+        
+        return {
+          response: conflictMessage,
+          data: {
+            action: 'conflict_check',
+            eventsCount: events.length,
+            events: events.slice(0, 5) // First 5 events
+          }
+        };
+      } catch (error) {
+        console.error('Conflict check error:', error);
+        return { response: generateFallbackResponse(message, language) };
+      }
+    }
+    
+    // Handle meeting preparation
+    if (commandResult.action === 'prepare_meeting') {
+      const prepMessage = language === 'ar'
+        ? 'سأساعدك في التحضير للاجتماع. سأجمع الإيميلات والمستندات ذات الصلة وأحضر جدول الأعمال.'
+        : 'I\'ll help you prepare for the meeting. I\'ll gather relevant emails, documents, and prepare an agenda.';
+      
+      return {
+        response: prepMessage,
+        data: {
+          action: 'meeting_preparation',
+          preparationStarted: true
+        }
+      };
+    }
+    
+    // Handle other commands normally
+    return {
+      response: commandResult.response,
+      data: commandResult.data
+    };
+    
+  } catch (error) {
+    console.error('Smart command processing error:', error);
+    return { response: generateFallbackResponse(message, language) };
+  }
+}
+
+// Convert scheduling intent to event data
+function convertIntentToEventData(schedulingRequest: any): any {
+  const { parsedIntent } = schedulingRequest;
+  
+  const eventData: any = {
+    title: parsedIntent.title || 'Scheduled Event',
+    category: parsedIntent.category || 'other',
+    priority: 'medium',
+    isRecurring: !!parsedIntent.recurrence,
+    recurrenceRule: parsedIntent.recurrence
+  };
+  
+  // Set start time
+  if (parsedIntent.startTime) {
+    eventData.startTime = parsedIntent.startTime;
+  } else {
+    // Default to next available slot
+    eventData.startTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+  }
+  
+  // Set end time
+  if (parsedIntent.endTime) {
+    eventData.endTime = parsedIntent.endTime;
+  } else if (parsedIntent.duration) {
+    eventData.endTime = new Date(eventData.startTime.getTime() + parsedIntent.duration * 60 * 1000);
+  } else {
+    eventData.endTime = new Date(eventData.startTime.getTime() + 60 * 60 * 1000); // Default 1 hour
+  }
+  
+  // Set location if specified
+  if (parsedIntent.location) {
+    eventData.location = {
+      address: parsedIntent.location,
+      type: getLocationType(parsedIntent.location)
+    };
+  }
+  
+  return eventData;
+}
+
+function getLocationType(location: string): string {
+  const locationLower = location.toLowerCase();
+  
+  if (locationLower.includes('gym') || locationLower.includes('fitness')) return 'gym';
+  if (locationLower.includes('office') || locationLower.includes('work')) return 'office';
+  if (locationLower.includes('home')) return 'home';
+  if (locationLower.includes('restaurant') || locationLower.includes('cafe')) return 'restaurant';
+  
+  return 'other';
 }
 
 // Helper function to convert base64 to blob

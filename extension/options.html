@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Assistant - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <img src="icons/icon48.png" alt="Personal Assistant" class="logo-icon">
+          <h1>Personal Assistant Settings</h1>
+        </div>
+        <div class="header-actions">
+          <button id="resetBtn" class="btn btn-outline">Reset to Defaults</button>
+          <button id="saveBtn" class="btn btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Status Messages -->
+    <div id="statusMessage" class="status-message hidden">
+      <div class="status-content">
+        <span id="statusText"></span>
+        <button id="statusClose" class="status-close">×</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Connection Settings -->
+      <section class="settings-section">
+        <h2>🔗 Connection Settings</h2>
+        <div class="setting-group">
+          <label for="apiUrl">Personal Assistant API URL:</label>
+          <input type="url" id="apiUrl" placeholder="http://localhost:3000/api">
+          <small>The base URL for your Personal Assistant installation</small>
+        </div>
+        
+        <div class="setting-group">
+          <label for="authToken">Authentication Token:</label>
+          <div class="input-group">
+            <input type="password" id="authToken" placeholder="Enter your auth token">
+            <button id="toggleToken" class="btn btn-icon" type="button">👁️</button>
+          </div>
+          <small>Get this from your Personal Assistant dashboard under Settings > API</small>
+        </div>
+        
+        <div class="setting-group">
+          <button id="testConnection" class="btn btn-secondary">Test Connection</button>
+          <div id="connectionStatus" class="connection-status"></div>
+        </div>
+      </section>
+
+      <!-- General Settings -->
+      <section class="settings-section">
+        <h2>⚙️ General Settings</h2>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoSync">
+            <span class="checkmark"></span>
+            Auto-sync data
+          </label>
+          <small>Automatically sync your data when the extension performs actions</small>
+        </div>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="notifications">
+            <span class="checkmark"></span>
+            Show notifications
+          </label>
+          <small>Display browser notifications when actions are completed</small>
+        </div>
+        
+        <div class="setting-group">
+          <label for="defaultCategory">Default expense category:</label>
+          <select id="defaultCategory">
+            <option value="miscellaneous">Miscellaneous</option>
+            <option value="food">Food & Dining</option>
+            <option value="shopping">Shopping</option>
+            <option value="transport">Transportation</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="utilities">Utilities</option>
+            <option value="health">Health</option>
+            <option value="travel">Travel</option>
+          </select>
+          <small>Default category for quick expense entries</small>
+        </div>
+      </section>
+
+      <!-- Meeting Notes Settings -->
+      <section class="settings-section">
+        <h2>📝 Meeting Notes Settings</h2>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoDetectMeetings">
+            <span class="checkmark"></span>
+            Auto-detect meeting platforms
+          </label>
+          <small>Automatically show notes capture option on meeting platforms</small>
+        </div>
+        
+        <div class="setting-group">
+          <label for="notesTemplate">Notes template:</label>
+          <textarea id="notesTemplate" rows="4" placeholder="Enter your default meeting notes template..."></textarea>
+          <small>Default template for meeting notes (supports variables: {title}, {date}, {platform})</small>
+        </div>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="captureParticipants">
+            <span class="checkmark"></span>
+            Auto-capture participants
+          </label>
+          <small>Automatically extract participant names from meeting platforms</small>
+        </div>
+      </section>
+
+      <!-- Smart Bookmarking Settings -->
+      <section class="settings-section">
+        <h2>🔖 Smart Bookmarking Settings</h2>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="smartCategories">
+            <span class="checkmark"></span>
+            Enable AI categorization
+          </label>
+          <small>Use AI to automatically categorize bookmarks</small>
+        </div>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="extractKeywords">
+            <span class="checkmark"></span>
+            Auto-extract keywords
+          </label>
+          <small>Automatically extract keywords from page content</small>
+        </div>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="savePageContent">
+            <span class="checkmark"></span>
+            Save page content preview
+          </label>
+          <small>Save a preview of the page content with bookmarks</small>
+        </div>
+      </section>
+
+      <!-- Keyboard Shortcuts -->
+      <section class="settings-section">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        
+        <div class="shortcuts-list">
+          <div class="shortcut-item">
+            <div class="shortcut-info">
+              <strong>Quick Expense Entry</strong>
+              <small>Add expense from current page</small>
+            </div>
+            <div class="shortcut-key">Ctrl+Shift+E</div>
+          </div>
+          
+          <div class="shortcut-item">
+            <div class="shortcut-info">
+              <strong>Capture Meeting Notes</strong>
+              <small>Capture notes from current page</small>
+            </div>
+            <div class="shortcut-key">Ctrl+Shift+N</div>
+          </div>
+          
+          <div class="shortcut-item">
+            <div class="shortcut-info">
+              <strong>Smart Bookmark</strong>
+              <small>Save bookmark with AI categorization</small>
+            </div>
+            <div class="shortcut-key">Ctrl+Shift+B</div>
+          </div>
+        </div>
+        
+        <small>To modify keyboard shortcuts, go to chrome://extensions/shortcuts</small>
+      </section>
+
+      <!-- Privacy & Security -->
+      <section class="settings-section">
+        <h2>🔒 Privacy & Security</h2>
+        
+        <div class="setting-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="encryptData">
+            <span class="checkmark"></span>
+            Encrypt sensitive data
+          </label>
+          <small>Encrypt authentication tokens and sensitive information</small>
+        </div>
+        
+        <div class="setting-group">
+          <label for="dataRetention">Data retention period:</label>
+          <select id="dataRetention">
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+            <option value="365">1 year</option>
+            <option value="0">Never delete</option>
+          </select>
+          <small>How long to keep cached data in the extension</small>
+        </div>
+        
+        <div class="setting-group">
+          <button id="clearData" class="btn btn-danger">Clear All Extension Data</button>
+          <small>This will clear all cached data, settings, and require re-authentication</small>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section class="settings-section">
+        <h2>ℹ️ About</h2>
+        
+        <div class="about-content">
+          <div class="about-item">
+            <strong>Version:</strong> 1.0.0
+          </div>
+          <div class="about-item">
+            <strong>Last Updated:</strong> <span id="lastUpdated">Loading...</span>
+          </div>
+          <div class="about-item">
+            <strong>Support:</strong> 
+            <a href="http://localhost:3000/help" target="_blank">Help Documentation</a>
+          </div>
+        </div>
+        
+        <div class="about-actions">
+          <button id="exportSettings" class="btn btn-outline">Export Settings</button>
+          <button id="importSettings" class="btn btn-outline">Import Settings</button>
+          <input type="file" id="importFile" accept=".json" style="display: none;">
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

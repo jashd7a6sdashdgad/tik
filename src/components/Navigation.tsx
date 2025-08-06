@@ -21,7 +21,8 @@ import {
   Brain,
   Sun,
   Camera,
-  Share2
+  Share2,
+  Moon
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -143,6 +144,12 @@ const getNavigation = (t: (key: string) => string) => [
     name: t('webScraper'),
     href: '/web-scraper',
     icon: Globe
+  },
+  {
+    key: 'islamic-settings',
+    name: 'Islamic Settings',
+    href: '/islamic-settings',
+    icon: Moon
   }
 ];
 

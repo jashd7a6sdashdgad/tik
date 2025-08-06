@@ -33,6 +33,7 @@ import {
   Palette
 } from 'lucide-react';
 import Image from 'next/image';
+import DriveImage from '@/components/DriveImage';
 
 import { PhotoIntelligence, PhotoMetadata } from '@/lib/photoIntelligence';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
@@ -364,10 +365,23 @@ export default function PhotosPage() {
     try {
       for (const file of Array.from(files)) {
         if (file.type.startsWith('image/')) {
-          console.log('📤 Uploading photo:', file.name);
+          console.log('📤 Uploading photo:', file.name, 'Size:', file.size, 'Type:', file.type);
+          
+          // Validate file size (max 50MB)
+          if (file.size > 50 * 1024 * 1024) {
+            throw new Error(`File "${file.name}" is too large (max 50MB)`);
+          }
+          
+          // Validate file type more strictly
+          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+          if (!allowedTypes.includes(file.type.toLowerCase())) {
+            throw new Error(`File type "${file.type}" not supported. Use JPEG, PNG, GIF, or WebP.`);
+          }
           
           const formData = new FormData();
           formData.append('photo', file);
+          
+          console.log('🚀 Sending upload request...');
           
           const response = await fetch('/api/google/drive/photos', {
             method: 'POST',
@@ -377,14 +391,27 @@ export default function PhotosPage() {
             body: formData
           });
           
+          console.log('📡 Upload response status:', response.status);
+          
           const data = await response.json();
+          console.log('📄 Upload response data:', data);
           
           if (!response.ok) {
             if (data.needsAuth) {
+              console.log('🔐 Authentication required, redirecting to auth');
               setNeedsAuth(true);
+              setError('Authentication expired. Please reconnect your Google Drive account.');
               return;
             }
-            throw new Error(data.error || 'Failed to upload photo');
+            
+            // More specific error messages
+            let errorMessage = data.error || 'Failed to upload photo';
+            if (data.details) {
+              console.error('Upload error details:', data.details);
+              errorMessage += ` (${data.details})`;
+            }
+            
+            throw new Error(errorMessage);
           }
           
           if (data.success) {
@@ -604,6 +631,61 @@ export default function PhotosPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const testGoogleDriveConnection = async () => {
+    if (!googleTokens) {
+      setError('No authentication tokens available for testing');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log('🧪 Running Google Drive connection test...');
+      
+      const response = await fetch('/api/google/drive/test', {
+        method: 'GET',
+        headers: {
+          'x-google-tokens': JSON.stringify(googleTokens)
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('✅ Google Drive test successful:', data);
+        setSuccessMessage('✅ Google Drive connection test passed! All systems working.');
+        
+        // Log detailed test results
+        console.log('📊 Test Results:', {
+          tokenCheck: data.tests.tokenCheck,
+          driveAccess: data.tests.driveTest,
+          folderAccess: data.tests.folderTest,
+          uploadCapability: data.tests.uploadTest,
+          environment: data.tests.environment
+        });
+        
+        setTimeout(() => setSuccessMessage(null), 5000);
+      } else {
+        console.error('❌ Google Drive test failed:', data);
+        setError(`Connection test failed at step "${data.step}": ${data.error}`);
+        
+        if (data.details) {
+          console.log('🔍 Test failure details:', data.details);
+        }
+        
+        if (data.step === 'token_validation' || data.step === 'auth_client_creation') {
+          setNeedsAuth(true);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Test request failed:', error);
+      setError(`Test request failed: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -681,6 +763,16 @@ export default function PhotosPage() {
                 title="Reset Google Drive permissions"
               >
                 🔓 Reset
+              </Button>
+              
+              <Button 
+                onClick={testGoogleDriveConnection}
+                variant="outline"
+                className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                title="Test Google Drive connection"
+                disabled={!googleTokens}
+              >
+                🧪 Test
               </Button>
               
               <input
@@ -925,6 +1017,13 @@ export default function PhotosPage() {
                               width={200}
                               height={120}
                               className="object-cover rounded-lg"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (target.src !== '/placeholder-image.svg') {
+                                  target.src = '/placeholder-image.svg';
+                                }
+                              }}
+                              unoptimized={album.thumbnailUrl?.includes('googleusercontent.com')}
                             />
                           ) : (
                             <div className="text-center">
@@ -978,10 +1077,17 @@ export default function PhotosPage() {
                           return (
                             <div key={photoId} className="relative aspect-square">
                               <Image
-                                src={photo.thumbnailLink || photo.webViewLink || '/placeholder-image.png'}
+                                src={photo.thumbnailLink || photo.webViewLink || '/placeholder-image.svg'}
                                 alt={photo.name}
                                 fill
                                 className="object-cover rounded-lg"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  if (target.src !== '/placeholder-image.svg') {
+                                    target.src = '/placeholder-image.svg';
+                                  }
+                                }}
+                                unoptimized={photo.thumbnailLink?.includes('googleusercontent.com')}
                               />
                               <Button
                                 size="sm"
@@ -1030,12 +1136,16 @@ export default function PhotosPage() {
                   <CardContent className="p-0">
                     {viewMode === 'grid' ? (
                       <div className="relative aspect-square">
-                        <Image
-                          src={photo.thumbnailLink || photo.webViewLink || '/placeholder-image.png'}
+                        <DriveImage
+                          fileId={photo.id}
+                          googleTokens={googleTokens}
                           alt={photo.name}
                           fill
                           className="object-cover rounded-t-lg"
                           onClick={() => setSelectedPhoto(photo)}
+                          onError={(e) => {
+                            console.warn('Failed to load image for:', photo.name);
+                          }}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-t-lg">
                           <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1104,11 +1214,15 @@ export default function PhotosPage() {
                     ) : (
                       <div className="flex items-center p-4 gap-4">
                         <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                          <Image
-                            src={photo.thumbnailLink || photo.webViewLink || '/placeholder-image.png'}
+                          <DriveImage
+                            fileId={photo.id}
+                            googleTokens={googleTokens}
                             alt={photo.name}
                             fill
                             className="object-cover"
+                            onError={(e) => {
+                              console.warn('Failed to load image for:', photo.name);
+                            }}
                           />
                         </div>
                         <div className="flex-1">
@@ -1168,11 +1282,15 @@ export default function PhotosPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative aspect-square rounded-lg overflow-hidden">
-                  <Image
-                    src={selectedPhoto.thumbnailLink || selectedPhoto.webViewLink || '/placeholder-image.png'}
+                  <DriveImage
+                    fileId={selectedPhoto.id}
+                    googleTokens={googleTokens}
                     alt={selectedPhoto.name}
                     fill
                     className="object-cover"
+                    onError={(e) => {
+                      console.warn('Failed to load image for:', selectedPhoto.name);
+                    }}
                   />
                 </div>
                 
