@@ -22,7 +22,8 @@ import {
   Sun,
   Camera,
   Share2,
-  Moon
+  Moon,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -150,6 +151,12 @@ const getNavigation = (t: (key: string) => string) => [
     name: 'Islamic Settings',
     href: '/islamic-settings',
     icon: Moon
+  },
+  {
+    key: 'security',
+    name: t('security'),
+    href: '/security',
+    icon: Shield
   }
 ];
 
