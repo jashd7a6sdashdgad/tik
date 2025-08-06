@@ -312,6 +312,10 @@ class PrayerTimesService {
   }
 
   // Update prayer settings
+  getSettings(): PrayerSettings {
+    return { ...this.prayerSettings };
+  }
+
   updateSettings(newSettings: Partial<PrayerSettings>): void {
     this.prayerSettings = { ...this.prayerSettings, ...newSettings };
     this.saveSettings();
