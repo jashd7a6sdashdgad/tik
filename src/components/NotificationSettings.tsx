@@ -273,7 +273,7 @@ export default function NotificationSettings() {
               {['low', 'medium', 'high', 'critical'].map((priority) => (
                 <Button
                   key={priority}
-                  variant={preferences.priorityThreshold === priority ? 'default' : 'outline'}
+                  variant={preferences.priorityThreshold === priority ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => handlePreferenceChange('priorityThreshold', priority)}
                   className="capitalize"
