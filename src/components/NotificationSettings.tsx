@@ -78,7 +78,7 @@ export default function NotificationSettings() {
 
     const contact = smartNotificationEngine.addVIPContact({
       ...newVipContact,
-      alwaysAllow: newVipContact.priority === 'vip'
+      alwaysAllow: newVipContact.priority === 'important'
     });
 
     setVipContacts(prev => [...prev, contact]);
