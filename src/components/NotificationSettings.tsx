@@ -487,7 +487,7 @@ export default function NotificationSettings() {
             <Button onClick={() => testNotification('high')} className="bg-orange-600 hover:bg-orange-700" size="sm">
               ⚡ High
             </Button>
-            <Button onClick={() => testNotification('medium')} variant="default" size="sm">
+            <Button onClick={() => testNotification('medium')} variant="primary" size="sm">
               📢 Medium  
             </Button>
             <Button onClick={() => testNotification('low')} variant="outline" size="sm">
