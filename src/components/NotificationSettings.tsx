@@ -434,7 +434,7 @@ export default function NotificationSettings() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{contact.name}</span>
-                      <Badge variant={contact.priority === 'vip' ? 'primary' : 'secondary'}>
+                      <Badge variant={contact.priority === 'vip' ? 'default' : 'secondary'}>
                         {contact.priority === 'vip' && <Star className="h-3 w-3 mr-1" />}
                         {contact.priority}  
                       </Badge>
