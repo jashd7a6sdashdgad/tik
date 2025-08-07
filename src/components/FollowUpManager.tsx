@@ -16,7 +16,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Snooze,
   Play,
   Pause,
   Filter,
@@ -532,7 +531,7 @@ export default function FollowUpManager() {
                               e.stopPropagation();
                               snoozeReminder(reminder.id, 24);
                             }}>
-                              <Snooze className="w-3 h-3" />
+                              <Clock className="w-3 h-3" />
                             </Button>
                           </>
                         )}

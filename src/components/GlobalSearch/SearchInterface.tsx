@@ -47,7 +47,7 @@ export default function SearchInterface({ isOpen, onClose, initialQuery = '' }: 
   const [isListening, setIsListening] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   // Focus input when opened

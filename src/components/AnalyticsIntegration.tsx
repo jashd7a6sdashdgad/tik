@@ -139,7 +139,7 @@ export default function AnalyticsIntegration({ className = '' }: AnalyticsIntegr
     if (!pixelId) return;
 
     // Facebook Pixel Code
-    (function(f: any, b, e, v, n: any, t, s) {
+    (function(f: any, b, e, v, n: any, t: any, s: any) {
       if (f.fbq) return;
       n = f.fbq = function(...args: any[]) {
         n.callMethod ? n.callMethod(...args) : n.queue.push(args);
@@ -154,7 +154,7 @@ export default function AnalyticsIntegration({ className = '' }: AnalyticsIntegr
       t.src = v;
       s = b.getElementsByTagName(e)[0];
       s.parentNode.insertBefore(t, s);
-    })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+    })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js', {}, {}, {});
 
     (window as any).fbq('init', pixelId);
     (window as any).fbq('track', 'PageView');

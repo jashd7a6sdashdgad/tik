@@ -213,7 +213,7 @@ export default function EmailTemplatesPanel({ onTemplateSelect, selectedEmail, o
         </div>
         <div className="flex gap-2">
           <Button
-            variant={activeTab === 'templates' ? 'default' : 'outline'}
+            variant={activeTab === 'templates' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('templates')}
             className="flex items-center gap-2"
           >
@@ -222,7 +222,7 @@ export default function EmailTemplatesPanel({ onTemplateSelect, selectedEmail, o
           </Button>
           {selectedEmail && (
             <Button
-              variant={activeTab === 'smart_replies' ? 'default' : 'outline'}
+              variant={activeTab === 'smart_replies' ? 'primary' : 'outline'}
               onClick={() => setActiveTab('smart_replies')}
               className="flex items-center gap-2"
             >

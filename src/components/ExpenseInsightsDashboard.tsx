@@ -56,7 +56,7 @@ export default function ExpenseInsightsDashboard({ expenses, onRefresh }: Props)
 
   useEffect(() => {
     if (expenses.length > 0) {
-      const smartExpenses = expenseIntelligence.batchClassifyExpenses(expenses);
+      const smartExpenses = expenseIntelligence.batchClassifyExpenses(expenses as any);
       const analyticsData = expenseIntelligence.exportExpenseAnalytics(smartExpenses);
       setAnalytics(analyticsData);
     }
