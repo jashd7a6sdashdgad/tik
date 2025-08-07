@@ -295,7 +295,7 @@ async function convertSmartEventToGoogle(smartEvent: any): Promise<any> {
 async function enhanceEventWithSmartFeatures(baseEvent: any): Promise<{ googleEvent: any; smartFeatures: any }> {
   try {
     // Auto-detect location and add travel time
-    let smartFeatures: any = {};
+    const smartFeatures: any = {};
     
     // Enhance location if present
     if (baseEvent.location) {

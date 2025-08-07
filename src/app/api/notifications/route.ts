@@ -3,7 +3,7 @@ import { verifyToken, COOKIE_OPTIONS } from '@/lib/auth';
 
 // Mock notification storage (in production, this would use a database)
 let notifications: any[] = [];
-let vipContacts: any[] = [];
+const vipContacts: any[] = [];
 
 export async function GET(request: NextRequest) {
   try {

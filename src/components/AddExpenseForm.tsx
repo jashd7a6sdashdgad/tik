@@ -104,8 +104,6 @@ export default function AddExpenseForm({ onAdded }: { onAdded: () => void }) {
     
     // Send data to N8n for OCR processing with improved error handling
     try {
-      let result;
-      
       // Use optimized base64 method with proper formatting
       const response = await fetch('/api/n8n/webhook', {
         method: 'POST',
@@ -194,7 +192,7 @@ HEre the answer you are looking for.`,
         throw new Error(`N8n API failed (${response.status}): ${errorText.slice(0, 200)}`);
       }
 
-      result = await response.json();
+      const result = await response.json();
       console.log('✅ N8n response received:', result);
       
       // Auto-fill form fields with extracted data

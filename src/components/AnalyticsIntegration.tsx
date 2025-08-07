@@ -141,8 +141,8 @@ export default function AnalyticsIntegration({ className = '' }: AnalyticsIntegr
     // Facebook Pixel Code
     (function(f: any, b, e, v, n, t, s) {
       if (f.fbq) return;
-      n = f.fbq = function() {
-        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      n = f.fbq = function(...args: any[]) {
+        n.callMethod ? n.callMethod(...args) : n.queue.push(args);
       };
       if (!f._fbq) f._fbq = n;
       n.push = n;

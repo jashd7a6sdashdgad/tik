@@ -176,7 +176,7 @@ export default function FollowUpManager() {
 
   // Filter and sort reminders
   useEffect(() => {
-    let filtered = reminders.filter(reminder => {
+    const filtered = reminders.filter(reminder => {
       const matchesSearch = searchQuery === '' || 
         reminder.emailSubject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         reminder.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -3,10 +3,10 @@ import { getAuthenticatedClient, GoogleDrive } from '@/lib/google';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   try {
-    const { fileId } = params;
+    const { fileId } = await params;
     const { searchParams } = new URL(request.url);
     const tokensParam = searchParams.get('tokens');
     const sessionTokens = request.headers.get('x-google-tokens') || tokensParam;

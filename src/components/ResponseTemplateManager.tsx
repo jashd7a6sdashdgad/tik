@@ -286,7 +286,7 @@ Best regards,
     setIsEditing(true);
   };
 
-  const useTemplate = (template: ResponseTemplate) => {
+  const applyTemplate = (template: ResponseTemplate) => {
     // Simulate using the template - in real app, this would open email composer
     setTemplates(prev => prev.map(t => 
       t.id === template.id 
@@ -497,7 +497,7 @@ Best regards,
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => useTemplate(selectedTemplate)}>
+                    <Button variant="outline" size="sm" onClick={() => applyTemplate(selectedTemplate)}>
                       <Copy className="w-4 h-4" />
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => deleteTemplate(selectedTemplate.id)}>
@@ -575,7 +575,7 @@ Best regards,
                         </div>
                       </div>
                       
-                      <Button onClick={() => useTemplate(selectedTemplate)} className="w-full">
+                      <Button onClick={() => applyTemplate(selectedTemplate)} className="w-full">
                         <Send className="w-4 h-4 mr-2" />
                         Use Template
                       </Button>
