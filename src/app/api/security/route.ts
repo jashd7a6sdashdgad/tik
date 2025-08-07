@@ -445,7 +445,7 @@ export async function POST(request: NextRequest) {
       ip: getClientIP(request),
       userAgent: request.headers.get('user-agent') || 'unknown',
       timestamp: new Date(),
-      details: { error: error.message },
+      details: { error: error instanceof Error ? error.message : String(error) },
     });
     
     return NextResponse.json(

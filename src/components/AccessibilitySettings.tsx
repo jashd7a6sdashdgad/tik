@@ -87,7 +87,7 @@ export default function AccessibilitySettings() {
         </div>
       </div>
 
-      <Tabs defaultValue="visual" className="space-y-6">
+      <Tabs value="visual" onValueChange={() => {}} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="visual" className="flex items-center gap-2">
             <Eye className="w-4 h-4" />
