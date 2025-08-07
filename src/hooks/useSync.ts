@@ -36,9 +36,9 @@ export function useSync() {
 }
 
 export function useSyncEvents() {
-  const [listeners] = useState(new Map<string, Function[]>());
+  const [listeners] = useState(new Map<string, ((data?: any) => void)[]>());
 
-  const on = useCallback((event: string, callback: Function) => {
+  const on = useCallback((event: string, callback: (data?: any) => void) => {
     if (!listeners.has(event)) {
       listeners.set(event, []);
     }
