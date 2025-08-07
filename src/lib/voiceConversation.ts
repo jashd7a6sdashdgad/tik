@@ -1,6 +1,7 @@
 // Voice Conversation Manager - Integrates Speech Recognition and TTS
 
-import { VoiceRecognition, VoiceCommand, voiceRecognition } from './voiceRecognition';
+// FIX: Remove unused VoiceRecognition import
+import { voiceRecognition } from './voiceRecognition';
 import { voiceCommandProcessor, VoiceCommandResult } from './voiceCommandProcessor';
 import { voiceNarrator, narratorSpeak } from './voiceNarrator';
 import { n8nVoiceAssistant, N8NVoiceResponse } from './n8nVoiceAssistant';
@@ -57,8 +58,8 @@ export class VoiceConversation {
 
     // Set up voice recognition callbacks
     voiceRecognition.setCallbacks({
-      onResult: (command: VoiceCommand) => this.handleVoiceCommand(command),
-      onError: (error: string) => this.handleRecognitionError(error),
+      onResult: (command) => this.handleVoiceCommand(command),
+      onError: (error) => this.handleRecognitionError(error),
       onStart: () => this.updateState({ isListening: true }),
       onEnd: () => this.updateState({ isListening: false }),
       onSpeechStart: () => this.handleSpeechStart(),
@@ -73,7 +74,8 @@ export class VoiceConversation {
 
   private setupNarratorListeners(): void {
     // Listen for narrator speech events
-    window.addEventListener('narrator:speaking:start', (event: any) => {
+    // FIX: Rename unused 'event' parameter to '_event'
+    window.addEventListener('narrator:speaking:start', (_event: any) => {
       this.updateState({ isSpeaking: true });
       
       // Pause listening while speaking to avoid feedback
@@ -82,7 +84,8 @@ export class VoiceConversation {
       }
     });
 
-    window.addEventListener('narrator:speaking:end', (event: any) => {
+    // FIX: Rename unused 'event' parameter to '_event'
+    window.addEventListener('narrator:speaking:end', (_event: any) => {
       this.updateState({ isSpeaking: false });
       
       // Resume listening after speaking if conversation is active
@@ -256,8 +259,9 @@ export class VoiceConversation {
         this.updateState({ isSpeaking: false });
         URL.revokeObjectURL(audioUrl); // Clean up blob URL
       };
-      audio.onerror = (error) => {
-        console.error('❌ N8N audio playback error:', error);
+      // FIX: Rename unused 'error' parameter to '_error'
+      audio.onerror = (_error) => {
+        console.error('❌ N8N audio playback error:', _error);
         this.updateState({ isSpeaking: false });
         URL.revokeObjectURL(audioUrl); // Clean up blob URL
       };
@@ -282,8 +286,9 @@ export class VoiceConversation {
         console.log('✅ N8N audio finished playing');
         this.updateState({ isSpeaking: false });
       };
-      audio.onerror = (error) => {
-        console.error('❌ N8N audio playback error:', error);
+      // FIX: Rename unused 'error' parameter to '_error'
+      audio.onerror = (_error) => {
+        console.error('❌ N8N audio playback error:', _error);
         this.updateState({ isSpeaking: false });
       };
       
@@ -307,7 +312,8 @@ export class VoiceConversation {
 
       const audio = new Audio(audioUrl);
       
-      audio.onloadeddata = () => {
+      // FIX: Rename unused 'error' parameter to '_error'
+      audio.onloadeddata = (_event) => {
         console.log('📊 Binary audio loaded:', {
           duration: audio.duration,
           readyState: audio.readyState

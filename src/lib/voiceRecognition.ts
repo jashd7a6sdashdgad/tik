@@ -90,7 +90,7 @@ export class VoiceRecognition {
   }
 
   private initializeRecognition(): void {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (SpeechRecognition) {
       this.isSupported = true;

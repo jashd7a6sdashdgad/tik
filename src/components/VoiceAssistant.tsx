@@ -99,7 +99,7 @@ export function VoiceAssistant() {
     console.log('🎤 Starting advanced continuous voice recognition...');
     
     try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       
       // Optimized settings for better interruption detection
@@ -643,7 +643,7 @@ export function VoiceAssistant() {
       // Fallback to native API
       console.log('🎙️ Using native speech recognition as fallback');
       
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       
       recognition.lang = language === 'ar' ? 'ar-SA' : 'en-US';

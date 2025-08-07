@@ -29,7 +29,35 @@ interface VoiceCommand {
   description: string;
   category: 'navigation' | 'actions' | 'settings' | 'content';
 }
-
+declare global {
+  interface SpeechRecognition extends EventTarget {
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    maxAlternatives: number;
+    onaudiostart: ((event: Event) => void) | null;
+    onaudioend: ((event: Event) => void) | null;
+    onend: ((event: Event) => void) | null;
+    onerror: ((event: any) => void) | null;
+    onnomatch: ((event: Event) => void) | null;
+    onresult: ((event: any) => void) | null;
+    onsoundstart: ((event: Event) => void) | null;
+    onspeechend: ((event: Event) => void) | null;
+    onspeechstart: ((event: Event) => void) | null;
+    onstart: ((event: Event) => void) | null;
+    abort(): void;
+    start(): void;
+    stop(): void;
+  }
+  var SpeechRecognition: {
+    prototype: SpeechRecognition;
+    new (): SpeechRecognition;
+  };
+  var webkitSpeechRecognition: {
+    prototype: SpeechRecognition;
+    new (): SpeechRecognition;
+  };
+}
 interface VoiceOnlySession {
   isActive: boolean;
   currentMode: 'listening' | 'processing' | 'responding' | 'idle';
@@ -249,21 +277,15 @@ export default function VoiceOnlyMode() {
 
   // Initialize speech recognition
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = continuousMode;
-        recognitionRef.current.interimResults = true;
-        recognitionRef.current.lang = 'en-US';
-
-        recognitionRef.current.onstart = () => {
-          setIsListening(true);
-          setSession(prev => ({ ...prev, currentMode: 'listening' }));
-          if (feedbackMode === 'verbose') {
-            announceMessage('Voice recognition started. I am listening for your command.', 'polite');
-          }
-        };
+    // This code only runs in the browser (client-side)
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US';
+    }
+  }, []);
 
         recognitionRef.current.onresult = (event) => {
           let transcript = '';
