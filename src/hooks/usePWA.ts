@@ -49,7 +49,7 @@ export function usePWA() {
   const installPWA = async () => {
     setIsInstalling(true);
     try {
-      await pwaManager.installApp();
+      await pwaManager.installPWA();
     } catch (error) {
       console.error('Failed to install PWA:', error);
     } finally {
