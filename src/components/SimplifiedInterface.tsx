@@ -566,7 +566,7 @@ export default function SimplifiedInterface() {
               <label className="font-medium">Simplified Interface</label>
               <Button
                 onClick={() => setSimplifiedMode(!simplifiedMode)}
-                variant={simplifiedMode ? "default" : "outline"}
+                variant={simplifiedMode ? "primary" : "outline"}
                 size="sm"
               >
                 {simplifiedMode ? "On" : "Off"}
