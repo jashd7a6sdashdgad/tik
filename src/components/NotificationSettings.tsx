@@ -399,7 +399,7 @@ export default function NotificationSettings() {
                       {['important', 'vip'].map((priority) => (
                         <Button
                           key={priority}
-                          variant={newVipContact.priority === priority ? 'default' : 'outline'}
+                          variant={newVipContact.priority === priority ? 'primary' : 'outline'}
                           size="sm"
                           onClick={() => setNewVipContact(prev => ({ ...prev, priority: priority as any }))}
                           className="capitalize"
@@ -434,7 +434,7 @@ export default function NotificationSettings() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{contact.name}</span>
-                      <Badge variant={contact.priority === 'vip' ? 'default' : 'secondary'}>
+                      <Badge variant={contact.priority === 'vip' ? 'primary' : 'secondary'}>
                         {contact.priority === 'vip' && <Star className="h-3 w-3 mr-1" />}
                         {contact.priority}  
                       </Badge>
