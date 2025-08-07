@@ -25,7 +25,7 @@ export default function ImageGeneration() {
     setImageUrl('');
 
     try {
-      const result = await geminiImageService.generateImage({ prompt });
+      const result = await (geminiImageService as any).generateImage({ prompt });
       console.log('Image generation result:', result);
 
       if (result.imageUrl && result.imageUrl.startsWith('http')) {
