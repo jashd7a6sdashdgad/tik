@@ -1,3 +1,5 @@
+// src/components/VoiceNarratorWidget.tsx
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,6 +16,7 @@ import {
   startAudioRecording,
   stopAudioRecording,
 } from '@/lib/voiceConversation';
+// This import will now work correctly after you fix the voiceRecognition.ts file
 import { isRecognitionSupported } from '@/lib/voiceRecognition';
 import { useRouter } from 'next/navigation';
 import { testN8NConnection } from '@/lib/n8nVoiceAssistant';
