@@ -778,7 +778,7 @@ export default function CulturalSettings() {
                         'Pork Products'
                       ].map(industry => (
                         <div key={industry} className="flex items-center space-x-2">
-                          <Switch defaultChecked />
+                          <Switch checked={true} />
                           <Label className="text-sm">{industry}</Label>
                         </div>
                       ))}
