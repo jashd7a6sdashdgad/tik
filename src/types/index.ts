@@ -72,6 +72,10 @@ export interface Expense {
   category: string;
   description: string;
   availableBalance?: number;
+  budgetImpact?: 'low' | 'medium' | 'high';
+  anomalyScore?: number;
+  autoCategory?: string;
+  confidence?: number;
 }
 
 export interface DiaryEntry {

@@ -22,6 +22,7 @@ export interface NotificationContext {
   category: string;
   urgency: number; // 1-10 scale
   isTimesensitive: boolean;
+  isTimeAttribute?: boolean;
   expiresAt?: Date;
   relatedEvents?: string[];
   location?: string;

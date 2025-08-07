@@ -67,7 +67,7 @@ export default function BudgetPage() {
       const expenseResponse = await fetch('/api/sheets/expenses');
       const expenseData = await expenseResponse.json();
       
-      let currentExpenses = [];
+      let currentExpenses: any[] = [];
       if (expenseData.success) {
         currentExpenses = expenseData.data.expenses || [];
       } else {

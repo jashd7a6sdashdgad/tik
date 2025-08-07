@@ -480,8 +480,8 @@ if (calendarResponse && calendarResponse.ok) {
         }
 
         // Add dynamic Messenger data based on email activity
-        const baseConversations = Math.max(Math.floor(dashboardData.totalEmails / 15), 15);
-        const baseMessages = Math.max(dashboardData.totalEmails * 8, 800);
+        const baseConversations = Math.max(Math.floor((dashboardData.totalEmails || 0) / 15), 15);
+        const baseMessages = Math.max((dashboardData.totalEmails || 0) * 8, 800);
         
         stats.messenger = {
           conversations: Math.min(baseConversations, 50),
