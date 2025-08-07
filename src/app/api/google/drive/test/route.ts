@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       const drive = new GoogleDrive(auth);
       
       // Test 1: Get user info
-      const aboutResponse = await drive.drive.about.get({ fields: 'user' });
+      const aboutResponse = await (drive as any).drive.about.get({ fields: 'user' });
       console.log('✅ User info retrieved:', aboutResponse.data.user);
       
       // Test 2: List a few files
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       const testBuffer = Buffer.from('Test file content for upload verification');
       const testFileName = `test-upload-${Date.now()}.txt`;
       
-      const uploadResult = await drive.drive.files.create({
+      const uploadResult = await (drive as any).drive.files.create({
         resource: {
           name: testFileName,
           parents: [folderTest.folderId]

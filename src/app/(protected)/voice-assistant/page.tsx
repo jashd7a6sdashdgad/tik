@@ -56,7 +56,7 @@ export default function VoiceAssistantPage() {
     noiseReduction: true
   });
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const synthesisRef = useRef<SpeechSynthesis | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -258,7 +258,7 @@ export default function VoiceAssistantPage() {
               <div className="flex items-center justify-center gap-4 py-8">
                 <Button
                   size="lg"
-                  variant={isListening ? "destructive" : "default"}
+                  variant={isListening ? "secondary" : "primary"}
                   onClick={isListening ? stopListening : startListening}
                   className="h-16 w-16 rounded-full"
                   disabled={isProcessing}
@@ -268,7 +268,7 @@ export default function VoiceAssistantPage() {
                 
                 <Button
                   size="lg"
-                  variant={isSpeaking ? "destructive" : "outline"}
+                  variant={isSpeaking ? "secondary" : "outline"}
                   onClick={isSpeaking ? stopSpeaking : () => {}}
                   className="h-12 w-12 rounded-full"
                   disabled={!isSpeaking}

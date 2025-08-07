@@ -163,7 +163,7 @@ export default function SecurityPage() {
       setIsLoading(true);
       const result = await smartPrivacy.cleanupExpiredData();
       
-      await auditLogger.logPrivacyEvent('data_cleanup', true, 'user1', {
+      await auditLogger.logPrivacyEvent('data_deleted', true, 'user1', {
         deleted: result.deleted,
         anonymized: result.anonymized
       });

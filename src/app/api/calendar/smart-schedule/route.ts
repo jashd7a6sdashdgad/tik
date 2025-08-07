@@ -273,7 +273,7 @@ async function syncWithGoogleCalendar(event: any, request: NextRequest): Promise
     const calendar = new GoogleCalendar(auth);
     
     // Convert to Google Calendar format
-    const googleEvent = {
+    const googleEvent: any = {
       summary: event.title,
       description: event.description || `Smart scheduled: ${event.title}`,
       start: {

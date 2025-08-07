@@ -151,8 +151,7 @@ export default function WorkflowsPage() {
       priority: template.template.priority,
       tags: template.template.tags,
       trigger: {
-        ...template.template.trigger,
-        id: `trigger_${Date.now()}`
+        ...template.template.trigger
       },
       actions: template.template.actions.map(action => ({
         ...action,
