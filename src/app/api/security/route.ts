@@ -51,7 +51,7 @@ function logSecurityEvent(event: SecurityEvent) {
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const real = request.headers.get('x-real-ip');
-  const ip = forwarded?.split(',')[0] || real || request.ip || 'unknown';
+  const ip = forwarded?.split(',')[0] || real || 'unknown';
   return ip;
 }
 
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
             ip,
             userAgent,
             timestamp: new Date(),
-            details: { error: error.message },
+            details: { error: error instanceof Error ? error.message : String(error) },
           });
           
           return NextResponse.json(
@@ -338,7 +338,7 @@ export async function POST(request: NextRequest) {
         const { userId } = data;
         
         // Simulate security scan
-        const scanResults = {
+        const scanResults: any = {
           timestamp: new Date().toISOString(),
           threats: [],
           vulnerabilities: [],
