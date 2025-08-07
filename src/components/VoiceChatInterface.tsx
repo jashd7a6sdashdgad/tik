@@ -3,8 +3,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Volume2, VolumeX, Settings, Send, MessageSquare } from 'lucide-react';
-import VoiceMessageRecorder from './VoiceMessageRecorder';
+import { RefreshCw, Volume2, VolumeX, Settings, Send, Mic } from 'lucide-react';
 import VoiceMessageDisplay from './VoiceMessageDisplay';
 import TextMessageDisplay from './TextMessageDisplay';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -14,7 +13,7 @@ interface ChatMessage {
   id: string;
   type: 'sent' | 'received';
   messageType: 'voice' | 'text';
-  content?: string; // For text messages
+  content?: string;
   audioUrl?: string;
   audioBase64?: string;
   transcription?: string;
@@ -38,152 +37,189 @@ export default function VoiceChatInterface({
   webhookUrl = '/api/voice-messages',
   maxMessages = 50
 }: VoiceChatInterfaceProps) {
-  // Translation and settings
   const { language, isRTL } = useSettings();
   const { t } = useTranslation(language);
   
-  // State management
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAutoPlayEnabled, setIsAutoPlayEnabled] = useState(true);
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
-  
-  // Refs
+
+  // Voice recorder state & refs
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const durationRef = useRef<number>(0);
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Scroll to bottom of messages
-   */
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  /**
-   * Handle voice message sent successfully
-   */
-  const handleVoiceMessageSent = useCallback(async (response: any) => {
-    console.log('Voice message response:', response);
+  const blobToBase64 = useCallback((blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }, []);
+
+  const handleSendRecordedAudio = useCallback(async (audioBlob: Blob, duration: number) => {
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Add sent message to conversation
+      const audioBase64 = await blobToBase64(audioBlob);
+
+      const payload = {
+        type: 'voice_message',
+        action: 'send',
+        audio: audioBase64,
+        fileName: `voiceMessage_${Date.now()}.webm`,
+        mimeType: audioBlob.type,
+        duration: duration,
+        timestamp: new Date().toISOString(),
+        size: audioBlob.size,
+      };
+
+      // Logging for debugging
+      console.log('Sending voice payload:', payload);
+
       const sentMessage: ChatMessage = {
         id: `sent-${Date.now()}`,
         type: 'sent',
         messageType: 'voice',
-        transcription: response.data?.transcription || 'Processing...',
-        duration: response.duration || 0,
+        transcription: 'Processing...',
+        duration: duration,
         timestamp: new Date().toISOString(),
-        audioBase64: response.originalAudio, // If returned
-        mimeType: response.mimeType
+        audioBase64,
+        mimeType: audioBlob.type
       };
-
       setMessages(prev => [...prev, sentMessage]);
+      scrollToBottom();
 
-      // If we have an AI response, add it as a received message
-      if (response.data?.aiResponse) {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to send voice message: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === sentMessage.id
+          ? { ...msg, transcription: result.data?.transcription || msg.transcription }
+          : msg
+      ));
+
+      if (result.data?.aiResponse) {
         const receivedMessage: ChatMessage = {
           id: `received-${Date.now()}`,
           type: 'received',
           messageType: 'voice',
-          transcription: response.data.transcription,
-          aiResponse: response.data.aiResponse,
-          audioBase64: response.data.audioResponse, // AI generated voice
-          duration: response.data.responseDuration || 3,
+          transcription: result.data.transcription,
+          aiResponse: result.data.aiResponse,
+          audioBase64: result.data.audioResponse,
+          duration: result.data.responseDuration || 3,
           timestamp: new Date().toISOString(),
-          mimeType: 'audio/mp3' // Assuming AI returns MP3
+          mimeType: 'audio/mp3'
         };
 
-        // Add received message after a short delay
         setTimeout(() => {
           setMessages(prev => [...prev, receivedMessage]);
-          
-          // Auto-play AI response if enabled
-          if (isAutoPlayEnabled && response.data.audioResponse) {
-            setTimeout(() => {
-              // Auto-play logic would go here
-              console.log('Auto-playing AI response...');
-            }, 500);
+          if (isAutoPlayEnabled && receivedMessage.audioBase64) {
+             // Logic to auto-play would go here
           }
+          scrollToBottom();
         }, 1000);
       }
-
-      // Scroll to bottom
-      setTimeout(scrollToBottom, 100);
-
-    } catch (error: any) {
-      console.error('Error processing voice message response:', error);
-      setError(t('failedToProcessVoice'));
+    } catch (err: any) {
+      console.error('Error sending voice message:', err);
+      setError(err.message || t('failedToProcessVoice'));
+      setMessages(prev => prev.filter(msg => msg.transcription !== 'Processing...'));
     } finally {
       setIsProcessing(false);
     }
-  }, [isAutoPlayEnabled, scrollToBottom]);
+  }, [blobToBase64, scrollToBottom, webhookUrl, isAutoPlayEnabled, t]);
 
-  /**
-   * Handle voice message errors
-   */
-  const handleVoiceMessageError = useCallback((error: string) => {
-    console.error('Voice message error:', error);
-    setError(error);
-    setIsProcessing(false);
+  const startRecording = useCallback(async () => {
+    if (isProcessing) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        stream.getTracks().forEach(track => track.stop());
+        if (audioBlob.size > 0) {
+          handleSendRecordedAudio(audioBlob, durationRef.current);
+        } else {
+          console.warn('Recorded audio blob is empty. Not sending.');
+          setIsProcessing(false);
+        }
+        setIsRecording(false);
+        durationRef.current = 0;
+        if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      durationRef.current = 0;
+      durationTimerRef.current = setInterval(() => {
+        durationRef.current++;
+      }, 1000);
+      console.log('Manual recording started.');
+
+    } catch (err: any) {
+      console.error('Error starting recording:', err);
+      setError(err.message || t('failedToAccessMicrophone'));
+      setIsRecording(false);
+    }
+  }, [isProcessing, handleSendRecordedAudio, t]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
   }, []);
 
-  /**
-   * Handle play state changes
-   */
-  const handlePlayStateChange = useCallback((messageId: string, isPlaying: boolean) => {
-    if (isPlaying) {
-      // Stop any other playing messages
-      if (currentPlayingId && currentPlayingId !== messageId) {
-        setMessages(prev => prev.map(msg => 
-          msg.id === currentPlayingId 
-            ? { ...msg, isPlaying: false }
-            : msg
-        ));
-      }
-      setCurrentPlayingId(messageId);
-    } else {
-      setCurrentPlayingId(null);
-    }
-
-    // Update message playing state
-    setMessages(prev => prev.map(msg =>
-      msg.id === messageId 
-        ? { ...msg, isPlaying }
-        : msg
-    ));
-  }, [currentPlayingId]);
-
-  /**
-   * Clear all messages
-   */
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
     setCurrentPlayingId(null);
   }, []);
 
-  /**
-   * Toggle auto-play for AI responses
-   */
   const toggleAutoPlay = useCallback(() => {
     setIsAutoPlayEnabled(prev => !prev);
   }, []);
 
-  /**
-   * Dismiss error message
-   */
   const dismissError = useCallback(() => {
     setError(null);
   }, []);
 
-  /**
-   * Send text message
-   */
   const sendTextMessage = useCallback(async () => {
     if (!textInput.trim() || isProcessing) return;
 
@@ -193,7 +229,6 @@ export default function VoiceChatInterface({
     setError(null);
 
     try {
-      // Add sent text message to conversation
       const sentMessage: ChatMessage = {
         id: `sent-${Date.now()}`,
         type: 'sent',
@@ -204,12 +239,9 @@ export default function VoiceChatInterface({
 
       setMessages(prev => [...prev, sentMessage]);
 
-      // Send to backend/n8n
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'text_message',
           action: 'send',
@@ -219,27 +251,12 @@ export default function VoiceChatInterface({
       });
 
       if (!response.ok) {
-        // Try to get detailed error message from response
-        let errorMessage = `Failed to send text message: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          }
-        } catch {
-          // Use default error message if can't parse response
-        }
-        
-        if (response.status === 503) {
-          errorMessage = 'Text processing service is currently unavailable. Please try again later.';
-        }
-        
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to send text message: ${response.statusText}`);
       }
 
       const result = await response.json();
       
-      // Handle successful response
       if (result.data?.aiResponse) {
         const receivedMessage: ChatMessage = {
           id: `received-${Date.now()}`,
@@ -249,26 +266,21 @@ export default function VoiceChatInterface({
           timestamp: new Date().toISOString()
         };
 
-        // Add received message after a short delay
         setTimeout(() => {
           setMessages(prev => [...prev, receivedMessage]);
         }, 1000);
       }
 
-      // Scroll to bottom
       setTimeout(scrollToBottom, 100);
 
-    } catch (error: any) {
-      console.error('Failed to send text message:', error);
-      setError(error.message || t('failedToSendText'));
+    } catch (err: any) {
+      console.error('Failed to send text message:', err);
+      setError(err.message || t('failedToSendText'));
     } finally {
       setIsProcessing(false);
     }
-  }, [textInput, isProcessing, webhookUrl, scrollToBottom]);
+  }, [textInput, isProcessing, webhookUrl, scrollToBottom, t]);
 
-  /**
-   * Handle text input key press
-   */
   const handleTextInputKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -276,9 +288,6 @@ export default function VoiceChatInterface({
     }
   }, [sendTextMessage]);
 
-  /**
-   * Generate sample messages for testing
-   */
   const addSampleMessages = useCallback(() => {
     const sampleMessages: ChatMessage[] = [
       {
@@ -318,15 +327,32 @@ export default function VoiceChatInterface({
     setTimeout(scrollToBottom, 100);
   }, [scrollToBottom]);
 
-  // Auto-scroll when new messages arrive
+  const handlePlayStateChange = useCallback((messageId: string, isPlaying: boolean) => {
+    if (isPlaying) {
+      if (currentPlayingId && currentPlayingId !== messageId) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === currentPlayingId 
+            ? { ...msg, isPlaying: false }
+            : msg
+        ));
+      }
+      setCurrentPlayingId(messageId);
+    } else {
+      setCurrentPlayingId(null);
+    }
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId 
+        ? { ...msg, isPlaying }
+        : msg
+    ));
+  }, [currentPlayingId]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Stop any playing audio
       if (currentPlayingId) {
         setCurrentPlayingId(null);
       }
@@ -335,7 +361,6 @@ export default function VoiceChatInterface({
 
   return (
     <div className={`voice-chat-interface flex flex-col h-full ${className}`}>
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
         <div>
           <h2 className="text-lg font-semibold text-gray-800">{t('chatAssistant')}</h2>
@@ -363,7 +388,6 @@ export default function VoiceChatInterface({
         </div>
       </div>
 
-      {/* Error Alert */}
       {error && (
         <div className="m-4 border border-red-200 bg-red-50 rounded-lg p-3">
           <div className="flex items-center justify-between">
@@ -375,7 +399,6 @@ export default function VoiceChatInterface({
         </div>
       )}
 
-      {/* Messages Area */}
       <div className="flex-1 p-4 overflow-y-auto" ref={scrollAreaRef}>
         <div className="space-y-4">
           {messages.length === 0 ? (
@@ -410,7 +433,6 @@ export default function VoiceChatInterface({
         </div>
       </div>
 
-      {/* Processing Indicator */}
       {isProcessing && (
         <div className="px-4 py-2 bg-blue-50 border-t border-blue-200">
           <div className="flex items-center space-x-2">
@@ -420,21 +442,19 @@ export default function VoiceChatInterface({
         </div>
       )}
 
-      {/* Message Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white space-y-3">
-        {/* Text Input */}
         <div className="flex items-center space-x-2">
           <Input
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             onKeyPress={handleTextInputKeyPress}
             placeholder={t('typeMessage')}
-            disabled={isProcessing}
+            disabled={isRecording || isProcessing}
             className="flex-1"
           />
           <Button
             onClick={sendTextMessage}
-            disabled={!textInput.trim() || isProcessing}
+            disabled={!textInput.trim() || isProcessing || isRecording}
             size="sm"
             className="bg-blue-500 hover:bg-blue-600 text-white"
           >
@@ -442,16 +462,24 @@ export default function VoiceChatInterface({
           </Button>
         </div>
 
-        {/* Voice Recorder */}
-        <VoiceMessageRecorder
-          onVoiceMessageSent={handleVoiceMessageSent}
-          onError={handleVoiceMessageError}
-          webhookUrl={webhookUrl}
-          className="w-full"
-        />
+        <div className="flex items-center justify-center p-3">
+          <Button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isProcessing}
+            size="icon"
+            className={`relative h-12 w-12 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          >
+            {isRecording && (
+              <div className="absolute inset-0 bg-red-400 opacity-50 rounded-full animate-ping" />
+            )}
+            <Mic className={`h-6 w-6 text-white ${isRecording ? 'animate-pulse' : ''}`} />
+          </Button>
+          <span className="ml-4 text-sm text-gray-500">
+            {isRecording ? 'Recording...' : 'Tap to speak'}
+          </span>
+        </div>
       </div>
 
-      {/* Footer Info */}
       <div className="px-4 py-2 bg-gray-50 border-t border-gray-200">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>

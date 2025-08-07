@@ -20,7 +20,9 @@ import {
   Upload,
   Trash2,
   Save,
-  RefreshCw
+  RefreshCw,
+  Fingerprint,
+  UserCheck
 } from 'lucide-react';
 
 interface UserSettings {
@@ -59,6 +61,13 @@ export default function SettingsPage() {
   const { language, timezone, setLanguage, setTimezone } = useSettings();
   const { t } = useTranslation(language);
   
+  // Biometric authentication states
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [hasStoredCredential, setHasStoredCredential] = useState(false);
+  const [biometricType, setBiometricType] = useState<string>('');
+  const [biometricError, setBiometricError] = useState('');
+  
   const [settings, setSettings] = useState<UserSettings>({
     profile: {
       username: user?.username || 'mahboob',
@@ -92,6 +101,182 @@ export default function SettingsPage() {
   
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+
+  // Mobile-specific biometric authentication using WebAuthn optimized for phones
+  const checkMobileBiometricSupport = async () => {
+    try {
+      // Check if we're on a mobile device first
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      console.log('Device detection:', { isMobile, isIOS, isAndroid });
+
+      if (!isMobile) {
+        console.log('Not a mobile device - biometric authentication disabled');
+        return false;
+      }
+
+      // Check WebAuthn support
+      if (!window.PublicKeyCredential) {
+        console.log('WebAuthn not supported on this mobile device');
+        return false;
+      }
+
+      // Check for platform authenticator (Touch ID, Face ID, Android fingerprint)
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      console.log('Mobile biometric authenticator available:', available);
+
+      // Additional mobile-specific checks
+      if (isIOS) {
+        // Check if the device likely has biometrics (iOS 8+)
+        const hasModernIOS = parseFloat(navigator.userAgent.match(/OS (\d+)_/)?.[1] || '0') >= 8;
+        console.log('iOS biometric support detected:', hasModernIOS && available);
+        return hasModernIOS && available;
+      } else if (isAndroid) {
+        // Check for Android 6+ (fingerprint support)
+        const androidMatch = navigator.userAgent.match(/Android (\d+)/);
+        const androidVersion = androidMatch ? parseInt(androidMatch[1]) : 0;
+        const hasModernAndroid = androidVersion >= 6;
+        console.log('Android biometric support detected:', hasModernAndroid && available);
+        return hasModernAndroid && available;
+      }
+
+      return available;
+    } catch (error) {
+      console.error('Error checking mobile biometric support:', error);
+      return false;
+    }
+  };
+
+  const registerMobileBiometric = async () => {
+    try {
+      setBiometricLoading(true);
+      setBiometricError('');
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      
+      console.log('Starting mobile biometric registration...', { isIOS, isAndroid });
+
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const userId = new TextEncoder().encode('mahboob_mobile');
+
+      // Mobile-optimized WebAuthn configuration
+      const credentialOptions: CredentialCreationOptions = {
+        publicKey: {
+          challenge: challenge,
+          rp: {
+            name: 'Mahboob Personal Assistant',
+            id: window.location.hostname,
+          },
+          user: {
+            id: userId,
+            name: 'mahboob',
+            displayName: 'Mahboob User',
+          },
+          pubKeyCredParams: [
+            { alg: -7, type: 'public-key' }, // ES256 - preferred by mobile devices
+            { alg: -257, type: 'public-key' }, // RS256 - fallback
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform', // Must use platform authenticator (Touch ID, Face ID, fingerprint)
+            userVerification: 'required', // Force biometric verification
+            residentKey: 'required', // Better for mobile UX
+          },
+          timeout: isIOS ? 120000 : 60000, // Longer timeout for iOS Face ID
+          attestation: 'none', // Better compatibility
+          extensions: {
+            // Mobile-friendly extensions
+            credProps: true,
+          },
+        },
+      };
+
+      console.log('Creating mobile biometric credential...');
+      
+      const credential = await navigator.credentials.create(credentialOptions) as PublicKeyCredential;
+
+      if (credential && credential.id) {
+        // Store credential info optimized for mobile
+        const rawIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+        localStorage.setItem('mobile_biometric_credential_id', credential.id);
+        localStorage.setItem('mobile_biometric_raw_id', rawIdBase64);
+        localStorage.setItem('mobile_biometric_device_type', isIOS ? 'ios' : 'android');
+        
+        console.log('Mobile biometric credential registered successfully:', credential.id);
+        
+        setHasStoredCredential(true);
+        const deviceName = isIOS ? 'Face ID/Touch ID' : 'Fingerprint/Face Unlock';
+        alert(`${deviceName} setup successful! You can now use biometric authentication on the login page.`);
+        
+        return { success: true, credential, deviceType: isIOS ? 'ios' : 'android' };
+      }
+
+      throw new Error('Failed to create mobile biometric credential');
+    } catch (error: any) {
+      console.error('Mobile biometric registration error:', error);
+      
+      // Mobile-specific error handling
+      if (error.name === 'NotAllowedError') {
+        setBiometricError('Please enable biometric authentication in your phone settings and try again');
+      } else if (error.name === 'NotSupportedError') {
+        setBiometricError('Your phone does not support biometric authentication');
+      } else if (error.name === 'SecurityError') {
+        setBiometricError('Security error - please ensure you are using HTTPS');
+      } else {
+        setBiometricError(error.message || 'Mobile biometric registration failed');
+      }
+      
+      return { success: false, error: error.message || 'Mobile biometric registration failed' };
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const clearMobileBiometric = () => {
+    localStorage.removeItem('mobile_biometric_credential_id');
+    localStorage.removeItem('mobile_biometric_raw_id');
+    localStorage.removeItem('mobile_biometric_device_type');
+    setHasStoredCredential(false);
+    setBiometricError('');
+    alert('Mobile biometric credentials cleared. You will need to set up fingerprint/Face ID authentication again.');
+  };
+
+  // Check biometric support on component mount
+  useEffect(() => {
+    const checkBiometricSupport = async () => {
+      try {
+        const available = await checkMobileBiometricSupport();
+        setBiometricSupported(available);
+
+        if (available) {
+          // Set mobile-specific biometric type
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          const isAndroid = /Android/.test(navigator.userAgent);
+          
+          if (isIOS) {
+            setBiometricType('Face ID / Touch ID');
+          } else if (isAndroid) {
+            setBiometricType('Fingerprint / Face Unlock');
+          } else {
+            setBiometricType('Mobile Biometric');
+          }
+
+          // Check if there's a stored mobile credential
+          const storedCredentialId = localStorage.getItem('mobile_biometric_credential_id');
+          setHasStoredCredential(!!storedCredentialId);
+          
+          console.log('Mobile biometric support available:', available);
+          console.log('Has stored mobile credential:', !!storedCredentialId);
+        }
+      } catch (error) {
+        console.error('Error checking mobile biometric support:', error);
+      }
+    };
+
+    checkBiometricSupport();
+  }, []);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -575,40 +760,181 @@ export default function SettingsPage() {
 
             {/* Data Management */}
             {activeTab === 'data' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Data Management</CardTitle>
-                  <CardDescription className="text-black">Import, export, and manage your data</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button onClick={handleExportData} variant="outline" className="text-black">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Data
-                    </Button>
-                    <Button variant="outline" className="text-black">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import Data
-                    </Button>
-                  </div>
-                  
-                  <div className="border-t border-secondary pt-6">
-                    <h4 className="font-medium text-black mb-2">Danger Zone</h4>
-                    <p className="text-sm text-black mb-4">These actions cannot be undone</p>
-                    
-                    <div className="space-y-3">
-                      <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Clear All Data
+              <div className="space-y-6">
+                <Card className="palette-card">
+                  <CardHeader>
+                    <CardTitle className="text-black">Data Management</CardTitle>
+                    <CardDescription className="text-black">Import, export, and manage your data</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button onClick={handleExportData} variant="outline" className="text-black">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Data
                       </Button>
-                      <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Account
+                      <Button variant="outline" className="text-black">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import Data
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    
+                    <div className="border-t border-secondary pt-6">
+                      <h4 className="font-medium text-black mb-2">Danger Zone</h4>
+                      <p className="text-sm text-black mb-4">These actions cannot be undone</p>
+                      
+                      <div className="space-y-3">
+                        <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear All Data
+                        </Button>
+                        <Button variant="outline" className="text-red-600 border-red-300 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Account
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Biometric Authentication Settings */}
+                <Card className="palette-card">
+                  <CardHeader>
+                    <CardTitle className="text-black flex items-center gap-3">
+                      <Fingerprint className="h-5 w-5" />
+                      Mobile Biometric Authentication
+                    </CardTitle>
+                    <CardDescription className="text-black">
+                      Configure Face ID, Touch ID, or fingerprint authentication for secure login
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {!biometricSupported ? (
+                      <div className="text-center py-8">
+                        <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="font-medium text-black mb-2">Biometric Authentication Not Available</h3>
+                        <p className="text-black text-sm">
+                          This feature requires a mobile device with Face ID, Touch ID, or fingerprint sensor.
+                          Please access this page from your phone to set up biometric authentication.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            {biometricType.includes('Face') ? (
+                              <UserCheck className="h-8 w-8 text-green-600" />
+                            ) : (
+                              <Fingerprint className="h-8 w-8 text-green-600" />
+                            )}
+                            <div>
+                              <h4 className="font-medium text-black">
+                                {biometricType} Available
+                              </h4>
+                              <p className="text-sm text-black">
+                                Your device supports biometric authentication
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasStoredCredential ? (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <UserCheck className="h-4 w-4" />
+                                <span className="text-sm font-medium">Enabled</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Fingerprint className="h-4 w-4" />
+                                <span className="text-sm">Not Set Up</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {biometricError && (
+                          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm">{biometricError}</p>
+                          </div>
+                        )}
+
+                        <div className="space-y-3">
+                          {!hasStoredCredential ? (
+                            <Button
+                              onClick={registerMobileBiometric}
+                              disabled={biometricLoading}
+                              className="w-full flex items-center gap-3 relative overflow-hidden group"
+                            >
+                              <div className="flex items-center gap-3 z-10">
+                                <Fingerprint className="h-5 w-5" />
+                                <div className="text-left">
+                                  <div className="font-medium">
+                                    Set Up {biometricType}
+                                  </div>
+                                  <div className="text-xs opacity-90">
+                                    {biometricLoading 
+                                      ? 'Follow the prompts on your device...' 
+                                      : 'Enable secure biometric login'
+                                    }
+                                  </div>
+                                </div>
+                              </div>
+                              {biometricLoading && (
+                                <div className="absolute right-3 animate-pulse">
+                                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                              )}
+                            </Button>
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center gap-3">
+                                  {biometricType.includes('Face') ? (
+                                    <UserCheck className="h-5 w-5 text-green-600" />
+                                  ) : (
+                                    <Fingerprint className="h-5 w-5 text-green-600" />
+                                  )}
+                                  <div>
+                                    <h4 className="font-medium text-black">{biometricType}</h4>
+                                    <p className="text-sm text-gray-600">Ready for authentication</p>
+                                  </div>
+                                </div>
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              </div>
+                              
+                              <Button
+                                onClick={clearMobileBiometric}
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove Biometric Authentication
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="font-medium text-black mb-3">How to use biometric authentication:</h4>
+                          <ul className="space-y-2 text-sm text-black">
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium text-primary">1.</span>
+                              Set up biometric authentication using the button above
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium text-primary">2.</span>
+                              Go to the login page and use the "{biometricType}" button
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="font-medium text-primary">3.</span>
+                              Follow your device's biometric prompts to sign in securely
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </div>
         </div>

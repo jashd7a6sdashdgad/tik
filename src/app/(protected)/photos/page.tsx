@@ -1,44 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
-import { 
-  Camera, 
-  Upload, 
-  Download, 
-  Trash2, 
-  Search,
-  Grid,
-  List,
-  Heart,
-  Share2,
-  Eye,
-  Plus,
-  Filter,
-  Image as ImageIcon,
-  Mic,
-  Brain,
-  Sparkles,
-  Album,
-  Copy,
-  Zap,
-  Tag,
-  MapPin,
-  Calendar,
-  Users,
-  Palette
+import {
+  Camera, Upload, Download, Trash2, Search, Grid, List, Heart, Share2,
+  Eye, Plus, Filter, ImageIcon, Mic, Brain, Sparkles, Album, Copy, Zap,
+  Tag, MapPin, Calendar, Users, Palette, X, XCircle
 } from 'lucide-react';
 import Image from 'next/image';
-import DriveImage from '@/components/DriveImage';
-
-import { PhotoIntelligence, PhotoMetadata } from '@/lib/photoIntelligence';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
 import PhotoDashboard from '@/components/PhotoDashboard';
+import VoiceAssistantWidget from '@/components/VoiceAssistantWidget';
 
+// --- Fix: Add the necessary imports for PhotoIntelligence and useVoiceInput ---
+import { PhotoIntelligence } from '@/lib/photoIntelligence';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+
+// --- Interfaces ---
 interface Photo {
   id: string;
   name: string;
@@ -65,14 +46,102 @@ interface SmartAlbum {
   };
 }
 
+interface PhotoMetadata {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  createdTime: Date;
+  modifiedTime: Date;
+  searchableText?: string;
+  aiTags?: string[];
+  textContent?: string[];
+  people?: string[];
+}
+
+// --- Helper Functions ---
+const formatFileSize = (size: string | number | undefined) => {
+  if (!size) return 'Unknown size';
+  const bytes = typeof size === 'string' ? parseInt(size, 10) : size;
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+};
+
+// --- DriveImage Component ---
+const DriveImage = ({ photo, alt, className, quality = 85 }: { photo: Photo, alt: string, className?: string, quality?: number }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  const src = photo.thumbnailLink || photo.webContentLink;
+
+  if (!src) {
+    return (
+      <div className={`flex items-center justify-center bg-gray-200 text-gray-400 ${className}`}>
+        <ImageIcon className="h-8 w-8" />
+      </div>
+    );
+  }
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+    setHasError(false);
+  };
+
+  const handleImageError = () => {
+    setHasError(true);
+    setIsLoading(false);
+  };
+
+  if (hasError) {
+    return (
+      <div className={`flex flex-col items-center justify-center bg-gray-200 text-red-500 ${className}`}>
+        <XCircle className="h-8 w-8" />
+        <p className="text-xs mt-1 text-center text-gray-500">Failed to load</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        layout="fill"
+        objectFit="cover"
+        onLoadingComplete={handleLoadingComplete}
+        onError={handleImageError}
+        className={`${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        quality={quality}
+      />
+    </div>
+  );
+};
+
+// --- Main Component ---
 export default function PhotosPage() {
   const { language } = useSettings();
   const { t } = useTranslation(language);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // --- State Management ---
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photoMetadata, setPhotoMetadata] = useState<PhotoMetadata[]>([]);
-  const [filteredPhotos, setFilteredPhotos] = useState<Photo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -83,808 +152,412 @@ export default function PhotosPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [googleTokens, setGoogleTokens] = useState<any>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
-  
-  // Smart photo features
+
+  // Smart photo features state
   const [showAIFeatures, setShowAIFeatures] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [smartAlbums, setSmartAlbums] = useState<SmartAlbum[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<string[][]>([]);
   const [voiceSearchQuery, setVoiceSearchQuery] = useState('');
-  
-  // Initialize photo intelligence
-  const photoIntelligence = new PhotoIntelligence();
-  
-  // Voice input for photo search
-  const { 
-    isListening, 
-    transcript, 
-    startListening, 
-    stopListening, 
-    resetTranscript, 
-    isSupported 
+
+  // --- Hooks & Instances ---
+  const photoIntelligence = useMemo(() => new PhotoIntelligence(), []);
+  const {
+    isListening, transcript, startListening, stopListening, resetTranscript, isSupported
   } = useVoiceInput();
 
-  // Load Google Drive photos
-  const loadPhotos = async () => {
+  // --- Utility Functions ---
+  const showNotification = useCallback((type: 'success' | 'error', message: string, duration = 4000) => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+    if (type === 'success') {
+      setSuccessMessage(message);
+      setError(null);
+    } else {
+      setError(message);
+      setSuccessMessage(null);
+    }
+    notificationTimeoutRef.current = setTimeout(() => {
+      setSuccessMessage(null);
+      setError(null);
+    }, duration);
+  }, []);
+
+  // --- Data Fetching & Auth ---
+  const loadPhotosFromDrive = useCallback(async (tokens: any) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/google/drive/photos', {
+        headers: { 'x-google-tokens': JSON.stringify(tokens) }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.needsAuth) setNeedsAuth(true);
+        throw new Error(data.error || 'Failed to load photos');
+      }
+      if (data.success) {
+        const loadedPhotos: Photo[] = data.photos || [];
+        setPhotos(loadedPhotos);
+        const metadata = loadedPhotos.map(photo => ({
+          id: photo.id, name: photo.name, url: photo.webViewLink,
+          thumbnailUrl: photo.thumbnailLink,
+          size: photo.size ? parseInt(photo.size, 10) : undefined,
+          mimeType: photo.mimeType, createdTime: new Date(photo.createdTime),
+          modifiedTime: new Date(photo.modifiedTime),
+          searchableText: (photo.name || '').toLowerCase()
+        }));
+        setPhotoMetadata(metadata);
+        console.log('📸 Loaded', loadedPhotos.length, 'photos from Google Drive');
+      }
+    } catch (err: any) {
+      console.error('Failed to load photos:', err);
+      showNotification('error', err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showNotification]);
+
+  const loadPhotos = useCallback(async () => {
     if (!googleTokens) {
-      // Try to get tokens from localStorage or session
       const storedTokens = localStorage.getItem('google_tokens');
       if (storedTokens) {
         const tokens = JSON.parse(storedTokens);
         setGoogleTokens(tokens);
-        await loadPhotosFromDrive(tokens);
       } else {
         setNeedsAuth(true);
         setIsLoading(false);
       }
       return;
     }
-    
     await loadPhotosFromDrive(googleTokens);
-  };
+  }, [googleTokens, loadPhotosFromDrive]);
 
-  const loadPhotosFromDrive = async (tokens: any) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await fetch('/api/google/drive/photos', {
-        method: 'GET',
-        headers: {
-          'x-google-tokens': JSON.stringify(tokens)
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        if (data.needsAuth) {
-          setNeedsAuth(true);
-          return;
-        }
-        throw new Error(data.error || 'Failed to load photos');
-      }
-      
-      if (data.success) {
-        const loadedPhotos = data.photos || [];
-        setPhotos(loadedPhotos);
-        
-        // Convert to PhotoMetadata format (without AI analysis for now)
-        try {
-          const metadata = await convertPhotosToMetadata(loadedPhotos);
-          setPhotoMetadata(metadata);
-        } catch (error) {
-          console.warn('Failed to convert photos to metadata:', error);
-          // Continue without metadata conversion
-        }
-        
-        console.log('📸 Loaded', loadedPhotos.length, 'photos from Google Drive');
-      }
-    } catch (error: any) {
-      console.error('Failed to load photos:', error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Initialize Google OAuth and load photos
   useEffect(() => {
-    loadPhotos();
-  }, [googleTokens]);
+    if (googleTokens) {
+      loadPhotosFromDrive(googleTokens);
+    }
+  }, [googleTokens, loadPhotosFromDrive]);
 
-  // Handle OAuth success callback
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('google_auth') === 'success') {
-      // Try to get tokens from cookies
-      const getCookie = (name: string) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-        return null;
-      };
-
       const accessToken = getCookie('google_access_token');
       const refreshToken = getCookie('google_refresh_token');
-      
       if (accessToken) {
-        const tokens = {
-          access_token: accessToken,
-          refresh_token: refreshToken
-        };
-        
-        // Store in localStorage for persistence
+        const tokens = { access_token: accessToken, refresh_token: refreshToken };
         localStorage.setItem('google_tokens', JSON.stringify(tokens));
         setGoogleTokens(tokens);
         setNeedsAuth(false);
-        
-        // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
         console.log('✅ Google OAuth completed successfully');
       }
     }
-    
     const authError = urlParams.get('error');
     if (authError) {
-      setError(`Authentication failed: ${authError}`);
+      showNotification('error', `Authentication failed: ${authError}`);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+    loadPhotos();
+  }, [loadPhotos, showNotification]);
 
-  // Reset Google Drive permissions and authentication
-  const resetGoogleAuth = () => {
-    // Clear all stored tokens and state
+  const resetGoogleAuth = useCallback(() => {
     localStorage.removeItem('google_tokens');
-    
-    // Clear cookies
     document.cookie = 'google_access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'google_refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
-    // Reset state
     setGoogleTokens(null);
     setNeedsAuth(true);
     setPhotos([]);
-    setFilteredPhotos([]);
     setError(null);
-    
     console.log('🔄 Google Drive permissions reset');
-  };
+  }, []);
 
-  // Google OAuth authentication
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = useCallback(async () => {
     try {
       const response = await fetch('/api/google/auth');
       const data = await response.json();
-      
       if (data.success) {
-        // Add photos page as redirect state
         const authUrlWithState = `${data.authUrl}&state=${encodeURIComponent('/photos')}`;
-        
-        // Redirect to OAuth instead of popup (better for mobile)
         window.location.href = authUrlWithState;
       }
-    } catch (error: any) {
-      console.error('OAuth error:', error);
-      setError('Failed to authenticate with Google');
+    } catch (err: any) {
+      console.error('OAuth error:', err);
+      showNotification('error', 'Failed to initiate authentication with Google.');
     }
-  };
+  }, [showNotification]);
 
-  // Convert photos to metadata format
-  const convertPhotosToMetadata = async (photos: Photo[]): Promise<PhotoMetadata[]> => {
-    return photos.map(photo => {
+  // --- Photo Management ---
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    if (!googleTokens?.access_token) {
+      showNotification('error', 'Authentication is required. Please connect your Google account.');
+      setNeedsAuth(true);
+      return;
+    }
+
+    setIsUploading(true);
+    const uploadPromises = Array.from(files).map(async file => {
       try {
-        return {
-          id: photo.id || `photo_${Date.now()}_${Math.random()}`,
-          name: photo.name || 'Unknown Photo',
-          url: photo.webViewLink || '',
-          thumbnailUrl: photo.thumbnailLink,
-          size: photo.size ? parseInt(photo.size) : undefined,
-          mimeType: photo.mimeType || 'image/jpeg',
-          createdTime: new Date(photo.createdTime || Date.now()),
-          modifiedTime: new Date(photo.modifiedTime || Date.now()),
-          searchableText: (photo.name || '').toLowerCase()
-        };
-      } catch (error) {
-        console.warn('Failed to convert photo to metadata:', photo, error);
-        // Return a basic metadata object
-        return {
-          id: photo.id || `photo_${Date.now()}_${Math.random()}`,
-          name: 'Unknown Photo',
-          url: '',
-          mimeType: 'image/jpeg',
-          createdTime: new Date(),
-          modifiedTime: new Date(),
-          searchableText: ''
-        };
+        if (!file.type.startsWith('image/')) throw new Error(`"${file.name}" is not an image.`);
+        if (file.size > 50 * 1024 * 1024) throw new Error(`"${file.name}" is too large (max 50MB).`);
+
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        const response = await fetch('/api/google/drive/photos', {
+          method: 'POST',
+          headers: { 'x-google-tokens': JSON.stringify(googleTokens) },
+          body: formData
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          if (data.needsAuth) setNeedsAuth(true);
+          throw new Error(data.error || `Failed to upload ${file.name}`);
+        }
+        return data.photo;
+      } catch (err: any) {
+        throw new Error(`Upload failed for ${file.name}: ${err.message}`);
       }
     });
-  };
-  
-  // Handle voice search
+
+    const results = await Promise.allSettled(uploadPromises);
+    const successfulUploads: Photo[] = [];
+    const failedUploads: string[] = [];
+
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        successfulUploads.push(result.value);
+      } else if (result.status === 'rejected') {
+        failedUploads.push(result.reason.message);
+      }
+    });
+
+    if (successfulUploads.length > 0) {
+      setPhotos(prev => [...successfulUploads, ...prev]);
+      showNotification('success', `Successfully uploaded ${successfulUploads.length} photo(s).`);
+      successfulUploads.forEach(photo => analyzeNewPhoto(photo).catch(console.warn));
+    }
+
+    if (failedUploads.length > 0) {
+      showNotification('error', `Failed to upload ${failedUploads.length} photo(s): ${failedUploads.join(', ')}`, 8000);
+    }
+
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [googleTokens, showNotification]);
+
+  const deletePhoto = useCallback(async (photoId: string) => {
+    if (!googleTokens) return showNotification('error', 'Please authenticate with Google Drive first.');
+
+    const originalPhotos = photos;
+    setPhotos(prev => prev.filter(p => p.id !== photoId));
+
+    try {
+      const response = await fetch(`/api/google/drive/photos?id=${photoId}`, {
+        method: 'DELETE',
+        headers: { 'x-google-tokens': JSON.stringify(googleTokens) }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.needsAuth) setNeedsAuth(true);
+        throw new Error(data.error || 'Failed to delete photo');
+      }
+      showNotification('success', 'Photo deleted successfully.');
+      if (selectedPhoto?.id === photoId) setSelectedPhoto(null);
+    } catch (err: any) {
+      showNotification('error', err.message);
+      setPhotos(originalPhotos);
+    }
+  }, [googleTokens, photos, selectedPhoto, showNotification]);
+
+  const toggleFavorite = useCallback((photoId: string) => {
+    setPhotos(prev =>
+      prev.map(photo =>
+        photo.id === photoId
+          ? { ...photo, isFavorite: !photo.isFavorite }
+          : photo
+      )
+    );
+  }, []);
+
+  // --- AI & Smart Features ---
+  const analyzeNewPhoto = useCallback(async (photo: Photo) => {
+    if (!photo?.id) return;
+    try {
+      const metadata: PhotoMetadata = {
+        id: photo.id, name: photo.name, url: photo.webViewLink,
+        mimeType: photo.mimeType, createdTime: new Date(photo.createdTime),
+        modifiedTime: new Date(photo.modifiedTime)
+      };
+      const analyzed = await photoIntelligence.analyzePhoto(metadata);
+      setPhotoMetadata(prev => [analyzed, ...prev.filter(p => p.id !== photo.id)]);
+      console.log('🤖 AI analysis completed for:', photo.name);
+    } catch (err) {
+      console.error('AI analysis failed for photo:', photo.name, err);
+      const basicMetadata: PhotoMetadata = {
+        id: photo.id, name: photo.name, url: photo.webViewLink,
+        mimeType: photo.mimeType, createdTime: new Date(photo.createdTime),
+        modifiedTime: new Date(photo.modifiedTime),
+        searchableText: (photo.name || '').toLowerCase()
+      };
+      setPhotoMetadata(prev => [basicMetadata, ...prev.filter(p => p.id !== photo.id)]);
+    }
+  }, [photoIntelligence]);
+
+  const analyzeAllPhotos = useCallback(async () => {
+    if (photos.length === 0) return;
+    setIsAnalyzing(true);
+    try {
+      const metadataToAnalyze = photos.map(p => ({
+        id: p.id, name: p.name, url: p.webViewLink, mimeType: p.mimeType,
+        createdTime: new Date(p.createdTime), modifiedTime: new Date(p.modifiedTime)
+      }));
+
+      const analysisPromises = metadataToAnalyze.map(meta =>
+        photoIntelligence.analyzePhoto(meta).catch(err => {
+          console.error(`Failed to analyze ${meta.name}:`, err);
+          return { ...meta, searchableText: (meta.name || '').toLowerCase() };
+        })
+      );
+
+      const analyzedMetadata = await Promise.all(analysisPromises);
+
+      setPhotoMetadata(analyzedMetadata);
+      showNotification('success', `🤖 AI analysis completed for ${analyzedMetadata.length} photos`);
+    } catch (err: any) {
+      showNotification('error', 'Failed to complete batch analysis.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [photos, photoIntelligence, showNotification]);
+
+  const handleVoiceSearch = useCallback(async (query: string) => {
+    if (photoMetadata.length === 0) return;
+    try {
+      const results = await photoIntelligence.searchPhotosByVoice(photoMetadata, query);
+      const resultIds = new Set(results.map(r => r.id));
+
+      const voiceFilteredPhotos = photos.filter(photo => resultIds.has(photo.id));
+
+      setSearchTerm(`voice_query:"${query}"`);
+
+      showNotification('success', `🎤 Found ${voiceFilteredPhotos.length} photos matching "${query}"`);
+    } catch (err) {
+      showNotification('error', 'Voice search failed');
+    }
+  }, [photoMetadata, photoIntelligence, photos, showNotification]);
+
   useEffect(() => {
     if (transcript && !isListening) {
       setVoiceSearchQuery(transcript);
       handleVoiceSearch(transcript);
       resetTranscript();
     }
-  }, [transcript, isListening, resetTranscript]);
-  
-  const handleVoiceSearch = async (query: string) => {
-    if (photoMetadata.length === 0) return;
-    
-    try {
-      const results = await photoIntelligence.searchPhotosByVoice(photoMetadata, query);
-      const resultIds = new Set(results.map(r => r.id));
-      const filtered = photos.filter(photo => resultIds.has(photo.id));
-      setFilteredPhotos(filtered);
-      
-      setSuccessMessage(`🎤 Found ${filtered.length} photos matching "${query}"`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error('Voice search error:', error);
-      setError('Voice search failed');
+  }, [transcript, isListening, resetTranscript, handleVoiceSearch]);
+
+  // --- Memoized Derived State ---
+  const filteredPhotos = useMemo(() => {
+    let result = photos;
+
+    if (showFavoritesOnly) {
+      result = result.filter(photo => photo.isFavorite);
     }
-  };
-  
-  // Filter photos based on search term, voice search, and favorites
-  useEffect(() => {
-    let filtered = photos;
-    
+
     if (searchTerm) {
-      if (photoMetadata.length > 0) {
-        // Use AI-enhanced search
-        const searchResults = photoMetadata.filter(metadata => 
-          metadata.searchableText?.includes(searchTerm.toLowerCase()) ||
-          metadata.aiTags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          metadata.textContent?.some(text => text.toLowerCase().includes(searchTerm.toLowerCase()))
+      if (searchTerm.startsWith('voice_query:')) {
+        const lowercasedTerm = searchTerm.replace('voice_query:', '').replace(/"/g, '').toLowerCase();
+        const searchResults = photoMetadata.filter(metadata =>
+          metadata.searchableText?.includes(lowercasedTerm) ||
+          metadata.aiTags?.some(tag => tag.toLowerCase().includes(lowercasedTerm)) ||
+          metadata.textContent?.some(text => text.toLowerCase().includes(lowercasedTerm))
         );
         const resultIds = new Set(searchResults.map(r => r.id));
-        filtered = filtered.filter(photo => resultIds.has(photo.id));
+        result = result.filter(photo => resultIds.has(photo.id));
       } else {
-        // Fallback to basic search
-        filtered = filtered.filter(photo => 
-          photo.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const lowercasedTerm = searchTerm.toLowerCase();
+        if (photoMetadata.length > 0) {
+          const searchResults = photoMetadata.filter(metadata =>
+            metadata.searchableText?.includes(lowercasedTerm) ||
+            metadata.aiTags?.some(tag => tag.toLowerCase().includes(lowercasedTerm)) ||
+            metadata.textContent?.some(text => text.toLowerCase().includes(lowercasedTerm))
+          );
+          const resultIds = new Set(searchResults.map(r => r.id));
+          result = result.filter(photo => resultIds.has(photo.id));
+        } else {
+          result = result.filter(photo => photo.name.toLowerCase().includes(lowercasedTerm));
+        }
       }
     }
-    
-    if (showFavoritesOnly) {
-      filtered = filtered.filter(photo => photo.isFavorite);
-    }
-    
-    setFilteredPhotos(filtered);
+
+    return result;
   }, [photos, photoMetadata, searchTerm, showFavoritesOnly]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    if (!googleTokens) {
-      setError('Please authenticate with Google Drive first');
-      return;
-    }
-
-    // Validate tokens
-    if (!googleTokens.access_token) {
-      console.error('❌ Missing access token:', googleTokens);
-      setError('Invalid authentication tokens - please reset and reconnect');
-      setNeedsAuth(true);
-      return;
-    }
-
-    console.log('🔑 Using tokens:', {
-      hasAccessToken: !!googleTokens.access_token,
-      hasRefreshToken: !!googleTokens.refresh_token,
-      accessTokenLength: googleTokens.access_token?.length
-    });
-
-    setIsUploading(true);
-    
-    try {
-      for (const file of Array.from(files)) {
-        if (file.type.startsWith('image/')) {
-          console.log('📤 Uploading photo:', file.name, 'Size:', file.size, 'Type:', file.type);
-          
-          // Validate file size (max 50MB)
-          if (file.size > 50 * 1024 * 1024) {
-            throw new Error(`File "${file.name}" is too large (max 50MB)`);
-          }
-          
-          // Validate file type more strictly
-          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-          if (!allowedTypes.includes(file.type.toLowerCase())) {
-            throw new Error(`File type "${file.type}" not supported. Use JPEG, PNG, GIF, or WebP.`);
-          }
-          
-          const formData = new FormData();
-          formData.append('photo', file);
-          
-          console.log('🚀 Sending upload request...');
-          
-          const response = await fetch('/api/google/drive/photos', {
-            method: 'POST',
-            headers: {
-              'x-google-tokens': JSON.stringify(googleTokens)
-            },
-            body: formData
-          });
-          
-          console.log('📡 Upload response status:', response.status);
-          
-          const data = await response.json();
-          console.log('📄 Upload response data:', data);
-          
-          if (!response.ok) {
-            if (data.needsAuth) {
-              console.log('🔐 Authentication required, redirecting to auth');
-              setNeedsAuth(true);
-              setError('Authentication expired. Please reconnect your Google Drive account.');
-              return;
-            }
-            
-            // More specific error messages
-            let errorMessage = data.error || 'Failed to upload photo';
-            if (data.details) {
-              console.error('Upload error details:', data.details);
-              errorMessage += ` (${data.details})`;
-            }
-            
-            throw new Error(errorMessage);
-          }
-          
-          if (data.success) {
-            console.log('✅ Photo uploaded successfully:', data.photo.name);
-            // Add the new photo to the list
-            setPhotos(prev => [data.photo, ...prev]);
-            
-            // Analyze the new photo with AI (non-blocking)
-            if (data.photo) {
-              analyzeNewPhoto(data.photo).catch(error => {
-                console.warn('AI analysis failed for uploaded photo:', error);
-                // Don't throw - just log the warning
-              });
-            }
-            
-            // Show success message briefly
-            const successMsg = `📸 "${file.name}" uploaded to Google Drive!`;
-            setSuccessMessage(successMsg);
-            console.log('🎉', successMsg);
-            
-            // Clear success message after 3 seconds
-            setTimeout(() => setSuccessMessage(null), 3000);
-          } else {
-            throw new Error(data.error || 'Upload failed');
-          }
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Frontend upload error:', error);
-      const errorMessage = error.message || 'Failed to upload photos';
-      setError(`Upload failed: ${errorMessage}`);
-      
-      // Show detailed error in console for debugging
-      console.error('❌ Detailed error info:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-  
-  // Analyze new photo with AI
-  const analyzeNewPhoto = async (photo: Photo) => {
-    if (!photo || !photo.id) {
-      console.warn('Invalid photo data for AI analysis');
-      return;
-    }
-
-    try {
-      const metadata: PhotoMetadata = {
-        id: photo.id,
-        name: photo.name || 'Unknown',
-        url: photo.webViewLink || '',
-        thumbnailUrl: photo.thumbnailLink,
-        size: photo.size ? parseInt(photo.size) : undefined,
-        mimeType: photo.mimeType || 'image/jpeg',
-        createdTime: new Date(photo.createdTime || Date.now()),
-        modifiedTime: new Date(photo.modifiedTime || Date.now())
-      };
-      
-      const analyzed = await photoIntelligence.analyzePhoto(metadata);
-      setPhotoMetadata(prev => [analyzed, ...prev]);
-      
-      console.log('🤖 AI analysis completed for:', photo.name);
-    } catch (error) {
-      console.error('AI analysis failed for photo:', photo.name, error);
-      // Add the basic metadata without AI analysis
-      const basicMetadata: PhotoMetadata = {
-        id: photo.id,
-        name: photo.name || 'Unknown',
-        url: photo.webViewLink || '',
-        thumbnailUrl: photo.thumbnailLink,
-        size: photo.size ? parseInt(photo.size) : undefined,
-        mimeType: photo.mimeType || 'image/jpeg',
-        createdTime: new Date(photo.createdTime || Date.now()),
-        modifiedTime: new Date(photo.modifiedTime || Date.now()),
-        searchableText: (photo.name || '').toLowerCase()
-      };
-      setPhotoMetadata(prev => [basicMetadata, ...prev]);
-    }
-  };
-  
-  // Generate smart albums
-  const generateSmartAlbums = async () => {
-    if (photoMetadata.length === 0) {
-      setError('No photos analyzed yet. Please wait for AI analysis to complete.');
-      return;
-    }
-    
-    try {
-      setIsAnalyzing(true);
-      const albums = await photoIntelligence.createSmartAlbums(photoMetadata);
-      setSmartAlbums(albums);
-      setSuccessMessage(`🎨 Created ${albums.length} smart albums`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error('Smart album creation failed:', error);
-      setError('Failed to create smart albums');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-  
-  // Detect duplicates
-  const detectDuplicates = async () => {
-    if (photoMetadata.length === 0) {
-      setError('No photos analyzed yet. Please wait for AI analysis to complete.');
-      return;
-    }
-    
-    try {
-      setIsAnalyzing(true);
-      const duplicates = await photoIntelligence.detectDuplicates(photoMetadata);
-      setDuplicateGroups(duplicates);
-      setSuccessMessage(`🔍 Found ${duplicates.length} duplicate groups`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error('Duplicate detection failed:', error);
-      setError('Failed to detect duplicates');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-  
-  // Batch analyze all photos
-  const analyzeAllPhotos = async () => {
-    if (photos.length === 0) return;
-    
-    try {
-      setIsAnalyzing(true);
-      const metadata = await convertPhotosToMetadata(photos);
-      
-      // Analyze each photo
-      const analyzed = [];
-      for (const meta of metadata) {
-        try {
-          const result = await photoIntelligence.analyzePhoto(meta);
-          analyzed.push(result);
-        } catch (error) {
-          console.error(`Failed to analyze ${meta.name}:`, error);
-          analyzed.push(meta); // Add unanalyzed version
-        }
-      }
-      
-      setPhotoMetadata(analyzed);
-      setSuccessMessage(`🤖 AI analysis completed for ${analyzed.length} photos`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error('Batch analysis failed:', error);
-      setError('Failed to analyze photos');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const toggleFavorite = (photoId: string) => {
-    // For now, just update locally - could implement Google Drive metadata later
-    setPhotos(prev => 
-      prev.map(photo => 
-        photo.id === photoId 
-          ? { ...photo, isFavorite: !photo.isFavorite }
-          : photo
-      )
-    );
-  };
-
-  const deletePhoto = async (photoId: string) => {
-    if (!googleTokens) {
-      setError('Please authenticate with Google Drive first');
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/google/drive/photos?id=${photoId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-google-tokens': JSON.stringify(googleTokens)
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        if (data.needsAuth) {
-          setNeedsAuth(true);
-          return;
-        }
-        throw new Error(data.error || 'Failed to delete photo');
-      }
-      
-      if (data.success) {
-        // Remove from local state
-        setPhotos(prev => prev.filter(photo => photo.id !== photoId));
-        if (selectedPhoto?.id === photoId) {
-          setSelectedPhoto(null);
-        }
-        console.log('✅ Photo deleted successfully');
-      }
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      setError(error.message || 'Failed to delete photo');
-    }
-  };
-
-  const formatFileSize = (size: string | number | undefined) => {
-    if (!size) return 'Unknown size';
-    const bytes = typeof size === 'string' ? parseInt(size) : size;
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const testGoogleDriveConnection = async () => {
-    if (!googleTokens) {
-      setError('No authentication tokens available for testing');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('🧪 Running Google Drive connection test...');
-      
-      const response = await fetch('/api/google/drive/test', {
-        method: 'GET',
-        headers: {
-          'x-google-tokens': JSON.stringify(googleTokens)
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log('✅ Google Drive test successful:', data);
-        setSuccessMessage('✅ Google Drive connection test passed! All systems working.');
-        
-        // Log detailed test results
-        console.log('📊 Test Results:', {
-          tokenCheck: data.tests.tokenCheck,
-          driveAccess: data.tests.driveTest,
-          folderAccess: data.tests.folderTest,
-          uploadCapability: data.tests.uploadTest,
-          environment: data.tests.environment
-        });
-        
-        setTimeout(() => setSuccessMessage(null), 5000);
-      } else {
-        console.error('❌ Google Drive test failed:', data);
-        setError(`Connection test failed at step "${data.step}": ${data.error}`);
-        
-        if (data.details) {
-          console.log('🔍 Test failure details:', data.details);
-        }
-        
-        if (data.step === 'token_validation' || data.step === 'auth_client_creation') {
-          setNeedsAuth(true);
-        }
-      }
-    } catch (error: any) {
-      console.error('❌ Test request failed:', error);
-      setError(`Test request failed: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // --- Render ---
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Main Photos Area */}
-        <div className="flex-1">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div>
-              <h1 className="text-3xl font-bold">{t('photos')}</h1>
-              <p className="text-muted-foreground">{t('manageYourPhotoAlbum')}</p>
-              {photos.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  📁 {photos.length} photos in "Mahboob Personal Assistant Photos" folder
-                </p>
-              )}
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || isLoading}
-                className="gap-2"
-              >
-                {isUploading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {t('uploading')}
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    {t('uploadPhotos')}
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={() => setShowAIFeatures(!showAIFeatures)}
-                variant={showAIFeatures ? "secondary" : "outline"}
-                className="gap-2"
-                title="Toggle AI photo features"
-              >
-                <Brain className="h-4 w-4" />
-                AI Features
-              </Button>
-              
-              <Button 
-                onClick={() => setShowDashboard(!showDashboard)}
-                variant={showDashboard ? "secondary" : "outline"}
-                className="gap-2"
-                title="View photo intelligence dashboard"
-              >
-                <Sparkles className="h-4 w-4" />
-                Dashboard
-              </Button>
-              
-              <Button 
-                onClick={loadPhotos}
-                disabled={isLoading}
-                variant="outline"
-                className="gap-2"
-              >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                ) : (
-                  '🔄'
-                )}
-                Refresh
-              </Button>
-              
-              <Button 
-                onClick={resetGoogleAuth}
-                variant="outline"
-                className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
-                title="Reset Google Drive permissions"
-              >
-                🔓 Reset
-              </Button>
-              
-              <Button 
-                onClick={testGoogleDriveConnection}
-                variant="outline"
-                className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                title="Test Google Drive connection"
-                disabled={!googleTokens}
-              >
-                🧪 Test
-              </Button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-          </div>
+    <div className="container mx-auto p-4 md:p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{t('photos')}</h1>
+          <p className="text-muted-foreground">{t('manageYourPhotoAlbum')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isLoading} className="gap-2">
+            {isUploading ? (
+              <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>{t('uploading')}</>
+            ) : (
+              <><Upload className="h-4 w-4" />{t('uploadPhotos')}</>
+            )}
+          </Button>
+          <Button onClick={loadPhotos} disabled={isLoading} variant="outline" className="gap-2">
+            {isLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div> : '🔄'}
+            Refresh
+          </Button>
+        </div>
+      </div>
 
-          {/* Photo Intelligence Dashboard */}
-          {showDashboard && (
-            <div className="mb-6">
-              <PhotoDashboard 
-                photos={photoMetadata}
-                smartAlbums={smartAlbums}
-                duplicateGroups={duplicateGroups}
-                onRefresh={analyzeAllPhotos}
-              />
-            </div>
-          )}
+      {/* Notifications */}
+      {error && (
+        <Card className="mb-6 border-red-200 bg-red-50 text-red-800">
+          <CardContent className="p-4 flex justify-between items-center">
+            <p>{error}</p>
+            <Button variant="ghost" size="icon" onClick={() => setError(null)}><X className="h-4 w-4" /></Button>
+          </CardContent>
+        </Card>
+      )}
+      {successMessage && (
+        <Card className="mb-6 border-green-200 bg-green-50 text-green-800">
+          <CardContent className="p-4 flex justify-between items-center">
+            <p>{successMessage}</p>
+            <Button variant="ghost" size="icon" onClick={() => setSuccessMessage(null)}><X className="h-4 w-4" /></Button>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* AI Smart Features Panel */}
-          {showAIFeatures && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  Smart Photo Features
-                </CardTitle>
-                <CardDescription>
-                  AI-powered photo management and organization tools
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <Button
-                    onClick={analyzeAllPhotos}
-                    disabled={isAnalyzing || photos.length === 0}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {isAnalyzing ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                    ) : (
-                      <Brain className="h-4 w-4" />
-                    )}
-                    Analyze Photos
-                  </Button>
-                  
-                  <Button
-                    onClick={generateSmartAlbums}
-                    disabled={isAnalyzing || photoMetadata.length === 0}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Album className="h-4 w-4" />
-                    Smart Albums
-                  </Button>
-                  
-                  <Button
-                    onClick={detectDuplicates}
-                    disabled={isAnalyzing || photoMetadata.length === 0}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Find Duplicates
-                  </Button>
-                  
-                  <Button
-                    onClick={isListening ? stopListening : startListening}
-                    disabled={!isSupported || photoMetadata.length === 0}
-                    variant={isListening ? "secondary" : "outline"}
-                    className="gap-2"
-                  >
-                    <Mic className={`h-4 w-4 ${isListening ? 'text-red-500' : ''}`} />
-                    Voice Search
-                  </Button>
-                </div>
-                
-                {/* Voice Search Status */}
-                {isListening && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-blue-800 text-sm flex items-center gap-2">
-                      <Mic className="h-4 w-4 animate-pulse" />
-                      Listening... Say something like "Show me photos from last vacation" or "Find pictures of food"
-                    </p>
-                  </div>
-                )}
-                
-                {voiceSearchQuery && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-green-800 text-sm">
-                      <strong>Voice Query:</strong> "{voiceSearchQuery}"
-                    </p>
-                  </div>
-                )}
-                
-                {/* AI Analysis Status */}
-                {photoMetadata.length > 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    📊 {photoMetadata.length} photos analyzed with AI • {smartAlbums.length} smart albums • {duplicateGroups.length} duplicate groups
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          
+      {/* Auth Screen */}
+      {needsAuth && (
+        <Card className="my-10 text-center">
+          <CardHeader>
+            <CardTitle>Connect to Google Drive</CardTitle>
+            <CardDescription>To manage your photos, you need to grant access to your Google Drive account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleGoogleAuth} className="gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Connect Google Drive
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">This will only access files created by this application.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Content (when authenticated) */}
+      {!needsAuth && (
+        <>
           {/* Search and Filters */}
           <Card className="mb-6">
             <CardContent className="p-4">
@@ -898,7 +571,6 @@ export default function PhotosPage() {
                     className="pl-10"
                   />
                 </div>
-                
                 <div className="flex gap-2">
                   <Button
                     variant={showFavoritesOnly ? "secondary" : "outline"}
@@ -906,23 +578,13 @@ export default function PhotosPage() {
                     onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                     className="gap-2"
                   >
-                    <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
+                    <Heart className={`h-4 w-4 ${showFavoritesOnly ? 'fill-current text-red-500' : ''}`} />
                     {t('favorites')}
                   </Button>
-                  
-                  <Button
-                    variant={viewMode === 'grid' ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                  >
+                  <Button variant={viewMode === 'grid' ? "secondary" : "outline"} size="sm" onClick={() => setViewMode('grid')}>
                     <Grid className="h-4 w-4" />
                   </Button>
-                  
-                  <Button
-                    variant={viewMode === 'list' ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                  >
+                  <Button variant={viewMode === 'list' ? "secondary" : "outline"} size="sm" onClick={() => setViewMode('list')}>
                     <List className="h-4 w-4" />
                   </Button>
                 </div>
@@ -930,515 +592,116 @@ export default function PhotosPage() {
             </CardContent>
           </Card>
 
-          {/* Error Display */}
-          {error && (
-            <Card className="mb-6 border-red-200 bg-red-50">
-              <CardContent className="p-4">
-                <p className="text-red-800">❌ {error}</p>
-                <Button 
-                  onClick={() => setError(null)} 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2"
-                >
-                  Dismiss
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Success Display */}
-          {successMessage && (
-            <Card className="mb-6 border-green-200 bg-green-50">
-              <CardContent className="p-4">
-                <p className="text-green-800">✅ {successMessage}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Authentication Required */}
-          {needsAuth && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Camera className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Connect to Google Drive</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  To manage your photos, please connect your Google Drive account.
-                </p>
-                <div className="flex gap-2">
-                  <Button onClick={handleGoogleAuth} className="gap-2">
-                    <Camera className="h-4 w-4" />
-                    Connect Google Drive
-                  </Button>
-                  {/* Show reset button if there might be cached permissions */}
-                  {(typeof window !== 'undefined' && localStorage.getItem('google_tokens')) && (
-                    <Button onClick={resetGoogleAuth} variant="outline" className="gap-2">
-                      🔄 Reset Permissions
-                    </Button>
-                  )}
+          {/* Photo Grid/List */}
+          {isLoading ? (
+            <div className="text-center p-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading photos from Google Drive...</p>
+            </div>
+          ) : filteredPhotos.length > 0 ? (
+            <>
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {filteredPhotos.map((photo) => (
+                    <Card key={photo.id} className="relative group overflow-hidden">
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                        <DriveImage
+                          photo={photo}
+                          alt={photo.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          quality={75}
+                        />
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        <Button
+                          onClick={() => toggleFavorite(photo.id)}
+                          variant="ghost"
+                          size="icon"
+                          className={`text-white hover:text-red-500 ${photo.isFavorite ? 'text-red-500' : ''}`}
+                        >
+                          <Heart className={`h-4 w-4 ${photo.isFavorite ? 'fill-current' : ''}`} />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent">
+                        <p className="text-sm font-medium text-white line-clamp-1">{photo.name}</p>
+                        <p className="text-xs text-gray-300">{formatFileSize(photo.size)}</p>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
 
-          {/* Loading State */}
-          {isLoading && !needsAuth && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <h3 className="text-lg font-semibold mb-2">Loading Photos...</h3>
-                <p className="text-muted-foreground">Fetching your photos from Google Drive</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Smart Albums Display */}
-          {smartAlbums.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Album className="h-5 w-5" />
-                  Smart Albums ({smartAlbums.length})
-                </CardTitle>
-                <CardDescription>
-                  AI-generated photo collections based on content, events, and patterns
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {smartAlbums.map((album) => (
-                    <Card key={album.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="aspect-video bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg mb-3 flex items-center justify-center">
-                          {album.thumbnailUrl ? (
-                            <Image
-                              src={album.thumbnailUrl}
-                              alt={album.name}
-                              width={200}
-                              height={120}
-                              className="object-cover rounded-lg"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (target.src !== '/placeholder-image.svg') {
-                                  target.src = '/placeholder-image.svg';
-                                }
-                              }}
-                              unoptimized={album.thumbnailUrl?.includes('googleusercontent.com')}
-                            />
-                          ) : (
-                            <div className="text-center">
-                              <Album className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                              <span className="text-sm text-gray-500">{album.photoCount} photos</span>
-                            </div>
-                          )}
+              {viewMode === 'list' && (
+                <div className="space-y-4">
+                  {filteredPhotos.map((photo) => (
+                    <Card key={photo.id}>
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                          <DriveImage
+                            photo={photo}
+                            alt={photo.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <h3 className="font-semibold text-sm mb-1">{album.name}</h3>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{album.description}</p>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{album.photoCount} photos</span>
-                          <span className="flex items-center gap-1">
-                            {album.criteria.type === 'event' && <Calendar className="h-3 w-3" />}
-                            {album.criteria.type === 'people' && <Users className="h-3 w-3" />}
-                            {album.criteria.type === 'location' && <MapPin className="h-3 w-3" />}
-                            {album.criteria.type === 'theme' && <Palette className="h-3 w-3" />}
-                            {album.criteria.type === 'time' && <Calendar className="h-3 w-3" />}
-                            {album.criteria.type}
-                          </span>
+                        <div className="flex-1">
+                          <p className="font-medium">{photo.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatFileSize(photo.size)} • {new Date(photo.createdTime).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <Button
+                            onClick={() => toggleFavorite(photo.id)}
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <Heart className={`h-4 w-4 ${photo.isFavorite ? 'fill-current text-red-500' : ''}`} />
+                          </Button>
+                          <Button
+                            onClick={() => deletePhoto(photo.id)}
+                            variant="ghost"
+                            size="icon"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Duplicate Photos Display */}
-          {duplicateGroups.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Copy className="h-5 w-5" />
-                  Duplicate Photos ({duplicateGroups.length} groups)
-                </CardTitle>
-                <CardDescription>
-                  Similar photos detected by AI analysis - review and remove duplicates to save space
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {duplicateGroups.slice(0, 5).map((group, groupIndex) => (
-                    <div key={groupIndex} className="border rounded-lg p-4">
-                      <h4 className="text-sm font-medium mb-2">Duplicate Group {groupIndex + 1}</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {group.map((photoId) => {
-                          const photo = photos.find(p => p.id === photoId);
-                          if (!photo) return null;
-                          return (
-                            <div key={photoId} className="relative aspect-square">
-                              <Image
-                                src={photo.thumbnailLink || photo.webViewLink || '/placeholder-image.svg'}
-                                alt={photo.name}
-                                fill
-                                className="object-cover rounded-lg"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  if (target.src !== '/placeholder-image.svg') {
-                                    target.src = '/placeholder-image.svg';
-                                  }
-                                }}
-                                unoptimized={photo.thumbnailLink?.includes('googleusercontent.com')}
-                              />
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="absolute top-1 right-1 h-6 w-6 p-0"
-                                onClick={() => deletePhoto(photoId)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  {duplicateGroups.length > 5 && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      ... and {duplicateGroups.length - 5} more duplicate groups
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Photos Display */}
-          {!needsAuth && !isLoading && filteredPhotos.length === 0 && !error ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">{t('noPhotosFound')}</h3>
-                <p className="text-muted-foreground text-center mb-4">{t('uploadPhotosToStart')}</p>
-                <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  {t('addFirstPhoto')}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : !needsAuth && !isLoading && filteredPhotos.length > 0 ? (
-            <div className={viewMode === 'grid' 
-              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" 
-              : "space-y-4"
-            }>
-              {filteredPhotos.map((photo) => (
-                <Card key={photo.id} className="group hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardContent className="p-0">
-                    {viewMode === 'grid' ? (
-                      <div className="relative aspect-square">
-                        <DriveImage
-                          fileId={photo.id}
-                          googleTokens={googleTokens}
-                          alt={photo.name}
-                          fill
-                          className="object-cover rounded-t-lg"
-                          onClick={() => setSelectedPhoto(photo)}
-                          onError={(e) => {
-                            console.warn('Failed to load image for:', photo.name);
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-t-lg">
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(photo.id);
-                              }}
-                            >
-                              <Heart className={`h-3 w-3 ${photo.isFavorite ? 'fill-current text-red-500' : ''}`} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPhoto(photo);
-                              }}
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          
-                          {/* AI Tags Overlay */}
-                          {(() => {
-                            const metadata = photoMetadata.find(m => m.id === photo.id);
-                            if (metadata?.aiTags && metadata.aiTags.length > 0) {
-                              return (
-                                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <div className="flex flex-wrap gap-1">
-                                    {metadata.aiTags.slice(0, 3).map((tag, idx) => (
-                                      <span key={idx} className="bg-blue-500/80 text-white text-xs px-2 py-1 rounded-full">
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3">
-                          <p className="text-white text-sm font-medium truncate">{photo.name}</p>
-                          <p className="text-white/70 text-xs">{formatFileSize(photo.size)} • {new Date(photo.createdTime).toLocaleDateString()}</p>
-                          
-                          {/* AI Confidence Indicator */}
-                          {(() => {
-                            const metadata = photoMetadata.find(m => m.id === photo.id);
-                            if (metadata?.aiConfidence) {
-                              return (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <Brain className="h-3 w-3 text-blue-400" />
-                                  <span className="text-white/70 text-xs">
-                                    {Math.round(metadata.aiConfidence * 100)}% AI
-                                  </span>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center p-4 gap-4">
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                          <DriveImage
-                            fileId={photo.id}
-                            googleTokens={googleTokens}
-                            alt={photo.name}
-                            fill
-                            className="object-cover"
-                            onError={(e) => {
-                              console.warn('Failed to load image for:', photo.name);
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{photo.name}</h3>
-                          <p className="text-sm text-muted-foreground">{photo.mimeType}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatFileSize(photo.size)} • {new Date(photo.createdTime).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleFavorite(photo.id)}
-                          >
-                            <Heart className={`h-4 w-4 ${photo.isFavorite ? 'fill-current text-red-500' : ''}`} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setSelectedPhoto(photo)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deletePhoto(photo.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+              )}
+            </>
+          ) : (
+            <div className="text-center p-10 border-2 border-dashed rounded-lg">
+              <h3 className="text-lg font-medium">No Photos Found</h3>
+              <p className="text-muted-foreground">
+                {searchTerm ? "Try adjusting your search or filters." : "Upload your first photo to get started."}
+              </p>
+              <Button onClick={() => fileInputRef.current?.click()} className="mt-4 gap-2">
+                <Upload className="h-4 w-4" />
+                Upload a Photo
+              </Button>
             </div>
-          ) : null}
-        </div>
+          )}
+        </>
+      )}
 
-        {/* Photo Details Sidebar */}
-        {selectedPhoto && (
-          <div className="w-full lg:w-80">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {t('photoDetails')}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedPhoto(null)}
-                  >
-                    ✕
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative aspect-square rounded-lg overflow-hidden">
-                  <DriveImage
-                    fileId={selectedPhoto.id}
-                    googleTokens={googleTokens}
-                    alt={selectedPhoto.name}
-                    fill
-                    className="object-cover"
-                    onError={(e) => {
-                      console.warn('Failed to load image for:', selectedPhoto.name);
-                    }}
-                  />
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold">{selectedPhoto.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {formatFileSize(selectedPhoto.size)} • {new Date(selectedPhoto.createdTime).toLocaleDateString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedPhoto.mimeType}
-                  </p>
-                  
-                  {/* AI-Enhanced Metadata */}
-                  {(() => {
-                    const metadata = photoMetadata.find(m => m.id === selectedPhoto.id);
-                    if (metadata) {
-                      return (
-                        <div className="mt-3 space-y-2">
-                          {/* AI Tags */}
-                          {metadata.aiTags && metadata.aiTags.length > 0 && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">AI Tags</label>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {metadata.aiTags.map((tag, idx) => (
-                                  <span key={idx} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                    <Tag className="h-3 w-3 inline mr-1" />
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Detected Objects */}
-                          {metadata.objects && metadata.objects.length > 0 && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">Objects Detected</label>
-                              <div className="text-sm text-muted-foreground mt-1">
-                                {metadata.objects.map(obj => obj.name).join(', ')}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Faces */}
-                          {metadata.faces && metadata.faces.length > 0 && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">People</label>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Users className="h-3 w-3" />
-                                <span className="text-sm text-muted-foreground">
-                                  {metadata.faces.length} face(s) detected
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Location */}
-                          {metadata.location && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">Location</label>
-                              <div className="flex items-center gap-1 mt-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="text-sm text-muted-foreground">
-                                  {metadata.location.city}, {metadata.location.country}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Quality Score */}
-                          {metadata.quality && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">Quality Score</label>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Zap className="h-3 w-3" />
-                                <span className="text-sm text-muted-foreground">
-                                  {Math.round(metadata.quality.overall * 100)}%
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* AI Confidence */}
-                          {metadata.aiConfidence && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground">AI Analysis Confidence</label>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Brain className="h-3 w-3" />
-                                <span className="text-sm text-muted-foreground">
-                                  {Math.round(metadata.aiConfidence * 100)}%
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileUpload}
+        className="hidden"
+      />
 
-                <div>
-                  <label className="text-sm font-medium">Google Drive</label>
-                  <p className="text-sm text-muted-foreground">
-                    Created: {new Date(selectedPhoto.createdTime).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Modified: {new Date(selectedPhoto.modifiedTime).toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleFavorite(selectedPhoto.id)}
-                    className="flex-1"
-                  >
-                    <Heart className={`h-4 w-4 mr-2 ${selectedPhoto.isFavorite ? 'fill-current text-red-500' : ''}`} />
-                    {selectedPhoto.isFavorite ? t('unfavorite') : t('addToFavorites')}
-                  </Button>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="flex-1">
-                    <Share2 className="h-4 w-4 mr-2" />
-                    {t('share')}
-                  </Button>
-                  <Button size="sm" variant="outline" className="flex-1">
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('download')}
-                  </Button>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => deletePhoto(selectedPhoto.id)}
-                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('deletePhoto')}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+      {/* Voice Assistant Widget */}
+      <VoiceAssistantWidget 
+        page="photos" 
+        position="fixed"
+        size="md"
+      />
     </div>
   );
 }

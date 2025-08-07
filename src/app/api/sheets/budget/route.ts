@@ -300,3 +300,120 @@ export async function PUT(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const token = request.cookies.get(COOKIE_OPTIONS.name)?.value;
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
+    
+    const user = verifyToken(token);
+    const body = await request.json();
+    const { id } = body;
+    
+    if (!id) {
+      return NextResponse.json({
+        success: false,
+        message: 'Budget item ID is required'
+      }, { status: 400 });
+    }
+
+    // Get OAuth tokens from cookies
+    const accessToken = request.cookies.get('google_access_token')?.value;
+    const refreshToken = request.cookies.get('google_refresh_token')?.value;
+    
+    if (!accessToken) {
+      throw new Error('Google authentication required');
+    }
+
+    const sheets = await getGoogleSheetsClient({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    
+    // Get sheet info to find the correct sheetId
+    let sheetId = 0;
+    try {
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID
+      });
+      
+      const budgetSheet = spreadsheet.data.sheets?.find(
+        sheet => sheet.properties?.title === BUDGET_CONFIG.name
+      );
+      
+      if (budgetSheet?.properties?.sheetId !== undefined && budgetSheet.properties.sheetId !== null) {
+        sheetId = budgetSheet.properties.sheetId;
+      }
+    } catch (sheetError) {
+      console.error('Error getting sheet info:', sheetError);
+      // Continue with default sheetId = 0
+    }
+
+    // ID is the row index (1-based after header), so calculate the actual row
+    const rowIndex = parseInt(id);
+    
+    // First, validate that the row exists by getting current data
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${BUDGET_CONFIG.name}!A:F`
+    });
+
+    const rows = response.data.values || [];
+    
+    // Check if the ID corresponds to a valid row (skipping header)
+    if (rowIndex < 1 || rowIndex >= rows.length) {
+      return NextResponse.json({
+        success: false,
+        message: 'Budget item not found'
+      }, { status: 404 });
+    }
+
+    // Google Sheets API uses 0-based indexing, but we need to account for header row
+    // rowIndex is 1-based from our data, so for deleting we need it as is
+    const actualRowToDelete = rowIndex; // Keep 1-based for deletion including header
+
+    try {
+      // Delete the row (Google Sheets API uses 0-based indexing)
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: sheetId,
+                dimension: 'ROWS',
+                startIndex: actualRowToDelete,
+                endIndex: actualRowToDelete + 1
+              }
+            }
+          }]
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Budget item deleted successfully',
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (apiError: any) {
+      if (apiError.message?.includes('not been used') || apiError.message?.includes('disabled')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Google Sheets API has not been used in project 573350886841 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=573350886841 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.'
+        }, { status: 500 });
+      }
+      throw apiError;
+    }
+
+  } catch (error: any) {
+    console.error('Budget delete error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Failed to delete budget item'
+    }, { status: 500 });
+  }
+}

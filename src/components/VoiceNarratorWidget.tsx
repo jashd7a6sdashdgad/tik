@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
 import { voiceNarrator, narratorSpeak, narratorStop, narratorToggle } from '@/lib/voiceNarrator';
-import { voiceConversation, startVoiceConversation, stopVoiceConversation, toggleVoiceConversation, isVoiceConversationActive } from '@/lib/voiceConversation';
+import { voiceConversation, startVoiceConversation, stopVoiceConversation, toggleVoiceConversation, isVoiceConversationActive, startAudioRecording, stopAudioRecording } from '@/lib/voiceConversation';
 import { isRecognitionSupported } from '@/lib/voiceRecognition';
+import { useRouter } from 'next/navigation';
+import { testN8NConnection } from '@/lib/n8nVoiceAssistant';
 import { 
   Volume2, 
   VolumeX, 
@@ -53,6 +55,7 @@ interface NarratorState {
 export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWidgetProps) {
   const { language } = useSettings();
   const t = useTranslation(language);
+  const router = useRouter();
   const [narratorState, setNarratorState] = useState<NarratorState>({
     isEnabled: true,
     isSpeaking: false,
@@ -132,11 +135,27 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
       }));
     };
 
+    // Voice navigation handler
+    const handleVoiceNavigation = (event: any) => {
+      const { destination } = event.detail;
+      console.log('🧭 Voice navigation request:', destination);
+      
+      if (destination) {
+        const path = `/${destination}`;
+        console.log('🚀 Navigating to:', path);
+        router.push(path);
+        
+        // Provide audio feedback
+        narratorSpeak(`Navigating to ${destination.replace('-', ' ')}. Taking you there now!`, 'system', 'medium');
+      }
+    };
+
     // Set up event listeners
     window.addEventListener('narrator:speaking:start', handleSpeechStart);
     window.addEventListener('narrator:speaking:end', handleSpeechEnd);
     window.addEventListener('voiceConversation:stateChange', handleConversationStateChange);
     window.addEventListener('voiceRecognition:result', handleVoiceCommand);
+    window.addEventListener('voice:navigate', handleVoiceNavigation);
 
     // Initial state update
     updateState();
@@ -150,6 +169,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
       window.removeEventListener('narrator:speaking:end', handleSpeechEnd);
       window.removeEventListener('voiceConversation:stateChange', handleConversationStateChange);
       window.removeEventListener('voiceRecognition:result', handleVoiceCommand);
+      window.removeEventListener('voice:navigate', handleVoiceNavigation);
       clearInterval(interval);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -207,9 +227,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
     narratorToggle(newState);
     setNarratorState(prev => ({ ...prev, isEnabled: newState }));
     
-    if (newState) {
-      narratorSpeak('Voice narrator is now enabled. I am ready to assist you!', 'system', 'high');
-    }
+    // Remove auto-speaking - user can test manually if they want
   };
 
   const handleStopSpeaking = () => {
@@ -219,6 +237,22 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
 
   const handleTestVoice = () => {
     narratorSpeak(testMessage, 'system', 'high');
+  };
+
+  const handleTestN8N = async () => {
+    narratorSpeak('Testing connection to N8N AI assistant. Please wait...', 'system', 'high');
+    
+    try {
+      const connectionTest = await testN8NConnection();
+      if (connectionTest) {
+        narratorSpeak('N8N AI assistant connection successful! I am ready to help you navigate the website and answer questions.', 'system', 'high');
+      } else {
+        narratorSpeak('N8N AI assistant connection failed. Please check the webhook URL and try again.', 'error', 'high');
+      }
+    } catch (error) {
+      console.error('N8N connection test error:', error);
+      narratorSpeak('N8N AI assistant connection test encountered an error.', 'error', 'high');
+    }
   };
 
   const handleVoiceConfigChange = (key: string, value: number | string) => {
@@ -232,27 +266,50 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
 
   const handleToggleConversation = () => {
     if (!narratorState.conversationSupported) {
-      narratorSpeak('Voice conversation is not supported in your browser. Please use a modern browser with microphone support.', 'error', 'high');
+      console.warn('Voice conversation not supported');
       return;
     }
 
     const wasActive = narratorState.isConversationActive;
-    toggleVoiceConversation();
+    
+    if (wasActive) {
+      // Stop conversation
+      stopVoiceConversation();
+      console.log('N8N AI conversation stopped');
+    } else {
+      // Start conversation - now connects to N8N
+      startVoiceConversation();
+      console.log('N8N AI conversation started - ready for voice commands');
+    }
     
     // State will be updated via event listener
   };
 
-  const handleStartListening = () => {
+  const handleStartListening = async () => {
     if (narratorState.isConversationActive) {
-      voiceConversation.startListening();
+      // Start audio recording for N8N
+      console.log('🎤 Starting N8N audio recording...');
+      try {
+        await startAudioRecording();
+      } catch (error) {
+        console.error('Failed to start audio recording:', error);
+        narratorSpeak('Failed to start audio recording. Please check your microphone permissions.', 'error', 'high');
+      }
     } else {
       startVoiceConversation();
     }
   };
 
-  const handleStopListening = () => {
+  const handleStopListening = async () => {
     if (narratorState.isConversationActive) {
-      voiceConversation.stopListening();
+      // Stop audio recording and send to N8N
+      console.log('🛑 Stopping N8N audio recording...');
+      try {
+        await stopAudioRecording();
+      } catch (error) {
+        console.error('Failed to stop audio recording:', error);
+        narratorSpeak('Failed to process audio recording.', 'error', 'high');
+      }
     }
   };
 
@@ -313,12 +370,16 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
     <div className={`fixed bottom-4 left-4 z-50 ${className}`}>
       <Card className="w-80 shadow-xl border-2 border-blue-200 bg-white">
         {/* Header */}
-        <div className={`flex items-center justify-between p-3 rounded-t-lg ${
+        <div className={`flex items-center justify-between p-3 rounded-t-lg transition-all duration-300 ${
           narratorState.isSpeaking 
-            ? 'bg-blue-600 text-white' 
+            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white animate-pulse' 
+            : narratorState.isListening
+              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white animate-pulse'
+            : narratorState.isConversationActive
+              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
             : narratorState.isEnabled
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-600 text-white'
+              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white'
+              : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
         }`}>
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -330,10 +391,10 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
             <div>
               <h3 className="font-medium text-sm">AI Voice Assistant</h3>
               <p className="text-xs opacity-90">
-                {narratorState.isSpeaking ? 'Speaking...' : 
-                 narratorState.isListening ? 'Listening...' :
-                 narratorState.isConversationActive ? 'Conversation Active' :
-                 narratorState.isEnabled ? 'Ready' : 'Disabled'}
+                {narratorState.isSpeaking ? '🔊 AI Speaking - will stop when you talk!' : 
+                 narratorState.isListening ? '🎤 Listening for your voice...' :
+                 narratorState.isConversationActive ? '🤖 N8N AI Connected - Listening!' :
+                 narratorState.isEnabled ? '✅ Ready for voice' : '❌ Voice Disabled'}
               </p>
             </div>
           </div>
@@ -391,18 +452,19 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
                 onClick={handleToggleNarrator}
                 className={`flex-1 ${
                   narratorState.isEnabled 
-                    ? 'bg-green-600 hover:bg-green-700' 
-                    : 'bg-gray-600 hover:bg-gray-700'
-                } text-white`}
+                    ? 'bg-green-500 hover:bg-green-600 border-green-600' 
+                    : 'bg-red-500 hover:bg-red-600 border-red-600'
+                } text-white font-medium transition-all duration-200`}
+                size="default"
               >
                 {narratorState.isEnabled ? (
                   <>
-                    <Volume2 className="h-4 w-4 mr-1" />
+                    <Volume2 className="h-4 w-4 mr-2" />
                     Speech On
                   </>
                 ) : (
                   <>
-                    <VolumeX className="h-4 w-4 mr-1" />
+                    <VolumeX className="h-4 w-4 mr-2" />
                     Speech Off
                   </>
                 )}
@@ -426,19 +488,20 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
                   onClick={handleToggleConversation}
                   className={`flex-1 ${
                     narratorState.isConversationActive 
-                      ? 'bg-blue-600 hover:bg-blue-700' 
-                      : 'bg-purple-600 hover:bg-purple-700'
-                  } text-white`}
+                      ? 'bg-blue-500 hover:bg-blue-600 border-blue-600' 
+                      : 'bg-purple-500 hover:bg-purple-600 border-purple-600'
+                  } text-white font-medium transition-all duration-200`}
+                  size="default"
                 >
                   {narratorState.isConversationActive ? (
                     <>
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      Conversation On
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      End N8N AI Chat
                     </>
                   ) : (
                     <>
-                      <Bot className="h-4 w-4 mr-1" />
-                      Start Conversation
+                      <Bot className="h-4 w-4 mr-2" />
+                      Start N8N AI Chat
                     </>
                   )}
                 </Button>
@@ -482,25 +545,47 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
             </div>
           )}
 
-          {/* Voice Conversation Status */}
+          {/* N8N Voice Conversation Status */}
           {narratorState.isConversationActive && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
-                <MessageCircle className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-800">Voice Conversation Active</span>
+                <Bot className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">N8N AI Assistant Connected</span>
               </div>
               <p className="text-xs text-blue-700">
-                {narratorState.isListening ? (
-                  '🎤 I\'m listening for your voice commands...'
+                {narratorState.isSpeaking ? (
+                  '🔊 Playing N8N AI response (binary audio)...'
+                ) : narratorState.isListening ? (
+                  '🎤 Recording audio for N8N AI - speak now!'
                 ) : (
-                  'Click the microphone to speak with me!'
+                  '🤖 N8N AI ready - sends/receives binary audio files'
                 )}
               </p>
               {narratorState.lastUserCommand && (
                 <p className="text-xs text-blue-600 mt-1 italic">
-                  Last command: "{narratorState.lastUserCommand}"
+                  You said: "{narratorState.lastUserCommand}"
                 </p>
               )}
+              <p className="text-xs text-gray-600 mt-1">
+                🎙️ Click mic → Speak → Release to send audio to N8N
+              </p>
+              <div className="mt-2 flex justify-center">
+                <Button
+                  onMouseDown={handleStartListening}
+                  onMouseUp={handleStopListening}
+                  onTouchStart={handleStartListening}
+                  onTouchEnd={handleStopListening}
+                  className={`px-4 py-2 rounded-full transition-all duration-200 ${
+                    narratorState.isListening 
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                  size="sm"
+                >
+                  <Mic className="h-4 w-4 mr-2" />
+                  {narratorState.isListening ? 'Recording...' : 'Hold to Record'}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -636,16 +721,27 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
                   className="w-full px-2 py-1 border rounded text-sm text-black resize-none"
                   rows={2}
                 />
-                <Button
-                  onClick={handleTestVoice}
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-full"
-                  disabled={!narratorState.isEnabled}
-                >
-                  <Play className="h-3 w-3 mr-1" />
-                  Test Voice
-                </Button>
+                <div className="mt-2 space-y-2">
+                  <Button
+                    onClick={handleTestVoice}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={!narratorState.isEnabled}
+                  >
+                    <Play className="h-3 w-3 mr-1" />
+                    Test Voice
+                  </Button>
+                  <Button
+                    onClick={handleTestN8N}
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Zap className="h-3 w-3 mr-1" />
+                    Test N8N AI Connection
+                  </Button>
+                </div>
               </div>
             </div>
           )}

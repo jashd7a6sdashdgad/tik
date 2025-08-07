@@ -234,3 +234,196 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const token = request.cookies.get(COOKIE_OPTIONS.name)?.value;
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
+    
+    const user = verifyToken(token);
+    const body = await request.json();
+    const { id, hotelName, roomType, nights, amount, city, notes = '', receipt = '' } = body;
+    
+    if (!id || !hotelName || !amount || !city || !nights) {
+      return NextResponse.json({
+        success: false,
+        message: 'ID, hotel name, amount, city, and nights are required'
+      }, { status: 400 });
+    }
+
+    // Get OAuth tokens from cookies
+    const accessToken = request.cookies.get('google_access_token')?.value;
+    const refreshToken = request.cookies.get('google_refresh_token')?.value;
+    
+    if (!accessToken) {
+      throw new Error('Google authentication required');
+    }
+
+    const sheets = await getGoogleSheetsClient({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    
+    const rowIndex = parseInt(id) + 1; // +1 for header row
+
+    try {
+      // Get current entry to preserve date
+      const currentRange = `${HOTEL_CONFIG.name}!A${rowIndex}:H${rowIndex}`;
+      const currentResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: currentRange,
+      });
+      
+      const originalDate = currentResponse.data.values?.[0]?.[0] || new Date().toISOString().split('T')[0];
+
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: currentRange,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [SheetHelpers.hotelExpenses.formatRow({ date: originalDate, hotelName, roomType, nights, amount, city, notes, receipt })]
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Hotel expense updated successfully',
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (apiError: any) {
+      if (apiError.message?.includes('not been used') || apiError.message?.includes('disabled')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Google Sheets API has not been used in project 573350886841 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=573350886841 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.'
+        }, { status: 500 });
+      }
+      throw apiError;
+    }
+
+  } catch (error: any) {
+    console.error('Hotel expense update error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Failed to update hotel expense'
+    }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const token = request.cookies.get(COOKIE_OPTIONS.name)?.value;
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+    }
+    
+    const user = verifyToken(token);
+    const body = await request.json();
+    const { id } = body;
+    
+    if (!id) {
+      return NextResponse.json({
+        success: false,
+        message: 'Hotel expense ID is required'
+      }, { status: 400 });
+    }
+
+    // Get OAuth tokens from cookies
+    const accessToken = request.cookies.get('google_access_token')?.value;
+    const refreshToken = request.cookies.get('google_refresh_token')?.value;
+    
+    if (!accessToken) {
+      throw new Error('Google authentication required');
+    }
+
+    const sheets = await getGoogleSheetsClient({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    
+    // Get sheet info to find the correct sheetId
+    let sheetId = 0;
+    try {
+      const spreadsheet = await sheets.spreadsheets.get({
+        spreadsheetId: SPREADSHEET_ID
+      });
+      
+      const hotelSheet = spreadsheet.data.sheets?.find(
+        sheet => sheet.properties?.title === HOTEL_CONFIG.name
+      );
+      
+      if (hotelSheet?.properties?.sheetId !== undefined && hotelSheet.properties.sheetId !== null) {
+        sheetId = hotelSheet.properties.sheetId;
+      }
+    } catch (sheetError) {
+      console.error('Error getting sheet info:', sheetError);
+      // Continue with default sheetId = 0
+    }
+
+    // ID is the row index (1-based after header), so calculate the actual row
+    const rowIndex = parseInt(id);
+    
+    // First, validate that the row exists by getting current data
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${HOTEL_CONFIG.name}!A:H`
+    });
+
+    const rows = response.data.values || [];
+    
+    // Check if the ID corresponds to a valid row (skipping header)
+    if (rowIndex < 1 || rowIndex >= rows.length) {
+      return NextResponse.json({
+        success: false,
+        message: 'Hotel expense not found'
+      }, { status: 404 });
+    }
+
+    const rowToDelete = rowIndex; // This is the 0-based index for the actual data row
+
+    try {
+      // Delete the row (Google Sheets API uses 0-based indexing for rows)
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          requests: [{
+            deleteDimension: {
+              range: {
+                sheetId: sheetId,
+                dimension: 'ROWS',
+                startIndex: rowToDelete,
+                endIndex: rowToDelete + 1
+              }
+            }
+          }]
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Hotel expense deleted successfully',
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (apiError: any) {
+      if (apiError.message?.includes('not been used') || apiError.message?.includes('disabled')) {
+        return NextResponse.json({
+          success: false,
+          message: 'Google Sheets API has not been used in project 573350886841 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=573350886841 then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.'
+        }, { status: 500 });
+      }
+      throw apiError;
+    }
+
+  } catch (error: any) {
+    console.error('Hotel expense delete error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Failed to delete hotel expense'
+    }, { status: 500 });
+  }
+}

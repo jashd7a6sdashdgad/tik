@@ -42,6 +42,12 @@ module.exports = {
         hostname: 'via.placeholder.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.weatherapi.com',
+        port: '',
+        pathname: '/**',
       }
     ],
     // Fallback for older Next.js versions
@@ -53,7 +59,8 @@ module.exports = {
       'drive.google.com',
       'googleusercontent.com',
       'images.unsplash.com',
-      'via.placeholder.com'
+      'via.placeholder.com',
+      'cdn.weatherapi.com'
     ]
   },
   // PWA Configuration

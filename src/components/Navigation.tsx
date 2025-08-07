@@ -45,6 +45,12 @@ const getNavigation = (t: (key: string) => string) => [
     icon: Search
   },
   {
+    key: 'search',
+    name: t('search') || 'Global Search',
+    href: '/search',
+    icon: Search
+  },
+  {
     key: 'think-tool',
     name: t('thinkTool'),
     href: '/think-tool',
@@ -180,11 +186,6 @@ export function Navigation() {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-secondary border-r border-primary px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center justify-between">
             <div className="flex items-center">
-              <img 
-                src="/avatar.png" 
-                alt={t('personalAssistantAvatar')} 
-                className="w-8 h-8 rounded-full border border-primary shadow-md mr-3"
-              />
               <h1 className="text-xl font-bold text-primary">
                 {language === 'ar' ? 'المساعد الشخصي' : 'Personal Assistant'}
               </h1>
@@ -283,11 +284,6 @@ export function Navigation() {
           
           <div className="flex-1 flex items-center justify-between text-sm font-semibold leading-6 text-primary">
             <div className="flex items-center">
-              <img 
-                src="/avatar.png" 
-                alt={t('personalAssistantAvatar')} 
-                className="w-6 h-6 rounded-full border border-primary shadow-md mr-2"
-              />
               {language === 'ar' ? 'المساعد الشخصي' : 'Personal Assistant'}
             </div>
           </div>
@@ -301,11 +297,6 @@ export function Navigation() {
             <div className="fixed inset-y-0 left-0 z-50 w-full overflow-y-auto bg-secondary px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-primary">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <img 
-                    src="/avatar.png" 
-                    alt={t('personalAssistantAvatar')} 
-                    className="w-8 h-8 rounded-full border border-primary shadow-md mr-3"
-                  />
                   <h1 className="text-xl font-bold text-primary">
                     {language === 'ar' ? 'المساعد الشخصي' : 'Personal Assistant'}
                   </h1>

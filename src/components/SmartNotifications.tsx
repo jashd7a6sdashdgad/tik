@@ -15,12 +15,15 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
-  BellRing
+  BellRing,
+  MapPin,
+  Sun,
+  Mic
 } from 'lucide-react';
 
 interface SmartNotification {
   id: string;
-  type: 'urgent' | 'reminder' | 'info' | 'success';
+  type: 'urgent' | 'reminder' | 'info' | 'success' | 'prayer';
   title: string;
   message: string;
   timestamp: Date;
@@ -29,7 +32,9 @@ interface SmartNotification {
     path: string;
   };
   autoHide?: boolean;
-  category: 'calendar' | 'email' | 'expense' | 'system' | 'social';
+  category: 'calendar' | 'email' | 'expense' | 'system' | 'social' | 'islamic' | 'voice';
+  prayerTime?: string;
+  priority?: number;
 }
 
 interface SmartNotificationsProps {
@@ -40,11 +45,104 @@ interface SmartNotificationsProps {
 export default function SmartNotifications({ dashboardData, className = '' }: SmartNotificationsProps) {
   const [notifications, setNotifications] = useState<SmartNotification[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [prayerTimes, setPrayerTimes] = useState<any>(null);
+
+  // Fetch prayer times
+  useEffect(() => {
+    const fetchPrayerTimes = async () => {
+      try {
+        const response = await fetch(`http://api.aladhan.com/v1/timingsByCity?city=Muscat&country=Oman&method=2`);
+        const data = await response.json();
+        if (data.code === 200) {
+          setPrayerTimes(data.data.timings);
+        }
+      } catch (error) {
+        console.error('Failed to fetch prayer times:', error);
+      }
+    };
+    
+    fetchPrayerTimes();
+  }, []);
 
   // Generate smart notifications based on data
   const generateNotifications = () => {
     const newNotifications: SmartNotification[] = [];
     const now = new Date();
+
+    // Islamic Prayer Times - Always show as highest priority
+    if (prayerTimes) {
+      const prayerNames = {
+        'Fajr': 'Dawn',
+        'Dhuhr': 'Noon', 
+        'Asr': 'Afternoon',
+        'Maghrib': 'Sunset',
+        'Isha': 'Night'
+      };
+
+      const currentTime = now.toTimeString().substring(0, 5);
+      let nextPrayer = '';
+      let nextPrayerTime = '';
+      let timeToNext = '';
+
+      // Find the next prayer
+      const prayers = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+      for (let i = 0; i < prayers.length; i++) {
+        const prayerTime = prayerTimes[prayers[i]];
+        if (prayerTime > currentTime) {
+          nextPrayer = prayers[i];
+          nextPrayerTime = prayerTime;
+          
+          // Calculate time difference
+          const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
+          const [prayerHours, prayerMinutes] = prayerTime.split(':').map(Number);
+          
+          const currentTotal = currentHours * 60 + currentMinutes;
+          const prayerTotal = prayerHours * 60 + prayerMinutes;
+          
+          const diffMinutes = prayerTotal - currentTotal;
+          const hours = Math.floor(diffMinutes / 60);
+          const minutes = diffMinutes % 60;
+          
+          if (hours > 0) {
+            timeToNext = `${hours}h ${minutes}m`;
+          } else {
+            timeToNext = `${minutes}m`;
+          }
+          break;
+        }
+      }
+
+      // If no prayer found for today, next prayer is Fajr tomorrow
+      if (!nextPrayer) {
+        nextPrayer = 'Fajr';
+        nextPrayerTime = prayerTimes['Fajr'];
+        timeToNext = 'Tomorrow';
+      }
+
+      newNotifications.push({
+        id: 'islamic-prayer-times',
+        type: 'prayer',
+        title: `🕌 Next Prayer: ${nextPrayer} (${prayerNames[nextPrayer as keyof typeof prayerNames]})`,
+        message: `${nextPrayerTime} - ${timeToNext} remaining`,
+        timestamp: now,
+        action: { text: 'Islamic Settings', path: '/islamic-settings' },
+        category: 'islamic',
+        priority: 100,
+        prayerTime: nextPrayerTime
+      });
+
+      // Show all prayer times for today
+      newNotifications.push({
+        id: 'todays-prayer-schedule',
+        type: 'info',
+        title: '📅 Today\'s Prayer Schedule',
+        message: `Fajr: ${prayerTimes.Fajr} | Dhuhr: ${prayerTimes.Dhuhr} | Asr: ${prayerTimes.Asr} | Maghrib: ${prayerTimes.Maghrib} | Isha: ${prayerTimes.Isha}`,
+        timestamp: now,
+        action: { text: 'Prayer Times', path: '/islamic-settings' },
+        category: 'islamic',
+        priority: 95
+      });
+    }
 
     // Upcoming events (within next 2 hours)
     if (dashboardData.todayEvents?.length > 0) {
@@ -151,13 +249,21 @@ export default function SmartNotifications({ dashboardData, className = '' }: Sm
     // Sort by priority and timestamp
     return newNotifications
       .sort((a, b) => {
-        const priorityOrder = { urgent: 4, reminder: 3, info: 2, success: 1 };
+        // First sort by custom priority if available
+        if (a.priority && b.priority) {
+          return b.priority - a.priority;
+        }
+        if (a.priority && !b.priority) return -1;
+        if (!a.priority && b.priority) return 1;
+        
+        // Then by type priority
+        const priorityOrder = { prayer: 5, urgent: 4, reminder: 3, info: 2, success: 1 };
         if (priorityOrder[a.type] !== priorityOrder[b.type]) {
           return priorityOrder[b.type] - priorityOrder[a.type];
         }
         return b.timestamp.getTime() - a.timestamp.getTime();
       })
-      .slice(0, showAll ? 10 : 5);
+      .slice(0, showAll ? 15 : 8);
   };
 
   useEffect(() => {
@@ -178,6 +284,7 @@ export default function SmartNotifications({ dashboardData, className = '' }: Sm
 
   const getNotificationIcon = (type: SmartNotification['type']) => {
     switch (type) {
+      case 'prayer': return <Sun className="h-4 w-4 text-green-700" />;
       case 'urgent': return <AlertTriangle className="h-4 w-4 text-red-600" />;
       case 'reminder': return <Clock className="h-4 w-4 text-yellow-600" />;
       case 'success': return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -187,6 +294,8 @@ export default function SmartNotifications({ dashboardData, className = '' }: Sm
 
   const getCategoryIcon = (category: SmartNotification['category']) => {
     switch (category) {
+      case 'islamic': return <Sun className="h-3 w-3" />;
+      case 'voice': return <Mic className="h-3 w-3" />;
       case 'calendar': return <Calendar className="h-3 w-3" />;
       case 'email': return <Mail className="h-3 w-3" />;
       case 'expense': return <DollarSign className="h-3 w-3" />;
@@ -196,6 +305,7 @@ export default function SmartNotifications({ dashboardData, className = '' }: Sm
 
   const getNotificationColor = (type: SmartNotification['type']) => {
     switch (type) {
+      case 'prayer': return 'border-green-300 bg-green-100';
       case 'urgent': return 'border-red-200 bg-red-50';
       case 'reminder': return 'border-yellow-200 bg-yellow-50';
       case 'success': return 'border-green-200 bg-green-50';
@@ -221,26 +331,27 @@ export default function SmartNotifications({ dashboardData, className = '' }: Sm
   }
 
   return (
-    <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2 text-black">
-          <Bell className="h-5 w-5" />
+    <Card className={`${className} min-h-[400px]`}>
+      <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <CardTitle className="flex items-center gap-3 text-black text-lg">
+          <Bell className="h-6 w-6" />
           Smart Notifications
           {notifications.length > 0 && (
-            <Badge variant="secondary">{notifications.length}</Badge>
+            <Badge variant="secondary" className="text-sm px-2 py-1">{notifications.length}</Badge>
           )}
         </CardTitle>
-        {notifications.length > 5 && (
+        {notifications.length > 8 && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setShowAll(!showAll)}
+            className="text-sm"
           >
             {showAll ? 'Show Less' : 'Show All'}
           </Button>
         )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
         {notifications.map((notification) => (
           <Card key={notification.id} className={`${getNotificationColor(notification.type)} border`}>
             <CardContent className="p-3">

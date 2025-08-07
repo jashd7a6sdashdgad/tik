@@ -525,11 +525,15 @@ HEre the answer you are looking for.`,
 
         {/* Image Preview */}
         {receiptImage && (
-          <div className="relative mb-2">
+          <div className="relative mb-2 bg-gray-100 rounded border">
             <img
               src={receiptImage.previewUrl}
               alt="Receipt preview"
-              className="w-full h-32 object-cover rounded border"
+              className="w-full h-32 object-contain rounded border bg-white"
+              style={{
+                maxHeight: '128px',
+                backgroundColor: 'white'
+              }}
             />
             <button
               type="button"

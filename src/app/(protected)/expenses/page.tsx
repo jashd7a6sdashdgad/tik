@@ -31,6 +31,7 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 import AddExpenseForm from '@/components/AddExpenseForm';
 import { expenseIntelligence, SmartExpense } from '@/lib/expenseIntelligence';
 import ExpenseInsightsDashboard from '@/components/ExpenseInsightsDashboard';
+import BudgetAdvisorDashboard from '@/components/BudgetAdvisorDashboard';
 
 interface ExpenseAnalytics {
   total: number;
@@ -62,6 +63,7 @@ export default function ExpensesPage() {
   const [endDate, setEndDate] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showInsights, setShowInsights] = useState(false);
+  const [showBudgetAdvisor, setShowBudgetAdvisor] = useState(false);
   const [smartExpenses, setSmartExpenses] = useState<SmartExpense[]>([]);
 
   const { 
@@ -85,17 +87,6 @@ export default function ExpensesPage() {
     { value: 'Education', label: t('education') },
     { value: 'General', label: t('general') }
   ];
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
-
-  useEffect(() => {
-    if (transcript && !isListening) {
-      parseVoiceExpense(transcript);
-      resetTranscript();
-    }
-  }, [transcript, isListening, resetTranscript]);
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
@@ -217,6 +208,17 @@ export default function ExpensesPage() {
     }
   }, [startDate, endDate, categoryFilter]);
 
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  useEffect(() => {
+    if (transcript && !isListening) {
+      parseVoiceExpense(transcript);
+      resetTranscript();
+    }
+  }, [transcript, isListening, resetTranscript]);
+
   const parseVoiceExpense = (voiceInput: string) => {
     const input = voiceInput.toLowerCase();
     const expensePattern = /(?:add|spent)\s+(\d+(?:\.\d{1,3})?)\s+(?:omr\s+)?(?:expense\s+)?(?:for|on)\s+(.+)/i;
@@ -314,6 +316,15 @@ export default function ExpensesPage() {
                 <Brain className="h-4 w-4 mr-2" />
                 AI Insights
               </Button>
+              <Button 
+                onClick={() => setShowBudgetAdvisor(!showBudgetAdvisor)} 
+                variant="outline" 
+                size="sm"
+                className={showBudgetAdvisor ? 'bg-green-50 text-green-700' : ''}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Budget Advisor
+              </Button>
               <Button onClick={() => setShowAddForm(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 {t('addExpense')}
@@ -324,6 +335,16 @@ export default function ExpensesPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Budget Advisor Dashboard */}
+        {showBudgetAdvisor && (
+          <div className="mb-8">
+            <BudgetAdvisorDashboard 
+              expenses={expenses} 
+              onRefresh={fetchExpenses}
+            />
+          </div>
+        )}
+
         {/* AI Insights Dashboard */}
         {showInsights && (
           <div className="mb-8">

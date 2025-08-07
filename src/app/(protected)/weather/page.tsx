@@ -20,6 +20,7 @@ import {
   Search,
   Loader2
 } from 'lucide-react';
+import VoiceAssistantWidget from '@/components/VoiceAssistantWidget';
 
 interface WeatherData {
   location: {
@@ -366,6 +367,13 @@ export default function WeatherPage() {
           </div>
         ) : null}
       </main>
+
+      {/* Voice Assistant Widget */}
+      <VoiceAssistantWidget 
+        page="weather" 
+        position="fixed"
+        size="md"
+      />
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
 import { biometricAuth } from '@/lib/security/biometricAuth';
 import { smartPrivacy, PrivacySettings } from '@/lib/security/smartPrivacy';
 import { auditLogger, AuditReport } from '@/lib/security/auditLogger';
+import VoiceAssistantWidget from '@/components/VoiceAssistantWidget';
 
 interface BiometricCapabilities {
   hasFingerprint: boolean;
@@ -717,6 +718,13 @@ export default function SecurityPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Voice Assistant Widget */}
+      <VoiceAssistantWidget 
+        page="security" 
+        position="fixed"
+        size="md"
+      />
     </div>
   );
 }

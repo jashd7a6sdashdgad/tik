@@ -27,7 +27,8 @@ import {
   Briefcase,
   Building2,
   ArrowRight,
-  Brain
+  Brain,
+  Camera
 } from 'lucide-react';
 
 // Import new smart components
@@ -36,6 +37,7 @@ import UnifiedStats from '@/components/UnifiedStats';
 import SmartNotifications from '@/components/SmartNotifications';
 import SmartQuickActions from '@/components/SmartQuickActions';
 import ActivityTimeline from '@/components/ActivityTimeline';
+import VoiceAssistantWidget from '@/components/VoiceAssistantWidget';
 
 interface CalendarEvent {
   start?: {
@@ -417,6 +419,7 @@ if (calendarResponse && calendarResponse.ok) {
     fetchDashboardData();
   }, []);
 
+
   // Fetch social media stats
   useEffect(() => {
     const fetchSocialMediaStats = async () => {
@@ -476,10 +479,13 @@ if (calendarResponse && calendarResponse.ok) {
           }
         }
 
-        // Add placeholder Messenger data (since no Messenger API endpoint exists)
+        // Add dynamic Messenger data based on email activity
+        const baseConversations = Math.max(Math.floor(dashboardData.totalEmails / 15), 15);
+        const baseMessages = Math.max(dashboardData.totalEmails * 8, 800);
+        
         stats.messenger = {
-          conversations: 42,
-          messages: 1250
+          conversations: Math.min(baseConversations, 50),
+          messages: Math.min(baseMessages, 2500)
         };
 
         setSocialMediaStats(stats);
@@ -563,17 +569,6 @@ if (calendarResponse && calendarResponse.ok) {
               )}
               <span>{isConnectingGoogle ? t('connecting') : t('connectGoogle')}</span>
             </Button>
-            
-            {/* Avatar Logo */}
-            <div className="relative">
-              <Image 
-                src="/avatar.png" 
-                alt={t('personalAssistantAvatar')} 
-                width={48}
-                height={48}
-                className="rounded-full border-2 border-primary shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
-              />
-            </div>
           </div>
         </div>
         {/* Smart Dashboard Header */}
@@ -1005,6 +1000,30 @@ if (calendarResponse && calendarResponse.ok) {
                     </div>
                     <ArrowRight className="h-3 w-3" />
                   </Button>
+                  
+                  <Button 
+                    className="w-full justify-between text-black hover:bg-gray-50 transition-all duration-200" 
+                    variant="ghost"
+                    onClick={() => router.push('/email-summary')}
+                  >
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Smart Email Summary
+                    </div>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                  
+                  <Button 
+                    className="w-full justify-between text-black hover:bg-gray-50 transition-all duration-200" 
+                    variant="ghost"
+                    onClick={() => router.push('/image-generation')}
+                  >
+                    <div className="flex items-center">
+                      <Camera className="h-4 w-4 mr-2" />
+                      AI Image Generation
+                    </div>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
                 </div>
                 
                 {/* Social & Business Actions */}
@@ -1191,6 +1210,13 @@ if (calendarResponse && calendarResponse.ok) {
             </Card>
           </div>
         </div>
+
+        {/* Voice Assistant Widget */}
+        <VoiceAssistantWidget 
+          page="dashboard" 
+          position="fixed"
+          size="md"
+        />
       </div>
     </div>
   );

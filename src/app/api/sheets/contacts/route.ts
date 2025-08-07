@@ -328,32 +328,32 @@ export async function DELETE(request: NextRequest) {
       // Continue with default sheetId = 0
     }
 
-    // First, get all contacts to find the correct row
+    // ID is the row index (1-based after header), so calculate the actual row
+    const rowIndex = parseInt(id);
+    
+    // First, validate that the row exists by getting current data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${CONTACTS_CONFIG.name}!A:Z`
+      range: `${CONTACTS_CONFIG.name}!A:F`
     });
 
     const rows = response.data.values || [];
-    let rowToDelete = -1;
     
-    // Find the row with matching ID (assuming ID is in first column after header)
-    for (let i = 1; i < rows.length; i++) { // Start from 1 to skip header
-      if (rows[i][0] === id) { // Assuming ID is in column A
-        rowToDelete = i;
-        break;
-      }
-    }
-    
-    if (rowToDelete === -1) {
+    // Check if the ID corresponds to a valid row (skipping header)
+    if (rowIndex < 1 || rowIndex >= rows.length) {
       return NextResponse.json({
         success: false,
         message: 'Contact not found'
       }, { status: 404 });
     }
 
+    const rowToDelete = rowIndex; // This is the 0-based index for the actual data row
+
     try {
-      // Delete the row (Google Sheets API uses 0-based indexing)
+      // Delete the row (Google Sheets API uses 0-based indexing for rows)
+      // rowToDelete is the 0-based index for data rows, but we need to account for the header
+      const actualRowIndex = rowToDelete; // rowIndex is already 1-based from the data, so it's correct for sheets API
+      
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: SPREADSHEET_ID,
         requestBody: {
@@ -362,8 +362,8 @@ export async function DELETE(request: NextRequest) {
               range: {
                 sheetId: sheetId,
                 dimension: 'ROWS',
-                startIndex: rowToDelete,
-                endIndex: rowToDelete + 1
+                startIndex: actualRowIndex,
+                endIndex: actualRowIndex + 1
               }
             }
           }]

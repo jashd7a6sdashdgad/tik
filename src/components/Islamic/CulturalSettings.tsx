@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CurrentPrayerTimes } from './CurrentPrayerTimes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -380,6 +381,22 @@ export default function CulturalSettings() {
                 </CardContent>
               </Card>
 
+              {/* Current Prayer Times Display */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5" />
+                    <span>Today's Prayer Times</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Current prayer times with adjustments applied
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <CurrentPrayerTimes settings={prayerSettings} />
+                </CardContent>
+              </Card>
+
               {/* Prayer Time Adjustments */}
               <Card>
                 <CardHeader>
@@ -390,9 +407,9 @@ export default function CulturalSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {Object.entries(prayerSettings.adjustments).map(([prayer, adjustment]) => (
-                    <div key={prayer} className="flex items-center justify-between">
-                      <Label className="capitalize">{prayer}</Label>
-                      <div className="flex items-center space-x-2">
+                    <div key={prayer} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <Label className="capitalize font-medium">{prayer}</Label>
+                      <div className="flex items-center space-x-3">
                         <Button
                           variant="outline"
                           size="sm"
@@ -404,10 +421,13 @@ export default function CulturalSettings() {
                               }
                             })
                           }
+                          className="h-8 w-8 p-0"
                         >
                           -
                         </Button>
-                        <span className="w-12 text-center">{adjustment}m</span>
+                        <span className="w-16 text-center font-mono">
+                          {adjustment > 0 ? '+' : ''}{adjustment}m
+                        </span>
                         <Button
                           variant="outline"
                           size="sm"
@@ -419,12 +439,20 @@ export default function CulturalSettings() {
                               }
                             })
                           }
+                          className="h-8 w-8 p-0"
                         >
                           +
                         </Button>
                       </div>
                     </div>
                   ))}
+                  
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Tip:</strong> Positive values make prayer times later, negative values make them earlier. 
+                      Adjustments are useful for personal preferences or local variations.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>

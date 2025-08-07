@@ -1,88 +1,87 @@
 @import "tailwindcss";
 
 :root {
-  /* Custom color palette */
-  --primary: #3D74B6;       /* Blue */
-  --background: #FBF5DE;     /* Cream */
-  --secondary: #EAC8A6;      /* Tan */
-  --accent: #DC3C22;         /* Red */
-  --foreground: #1a1a1a;
+  /* Custom color palette - HSL values for Tailwind v4 */
+  --color-primary: 212 61% 48%;         /* Blue #3D74B6 */
+  --color-background: 47 71% 91%;       /* Cream #FBF5DE */
+  --color-secondary: 35 39% 80%;        /* Tan #EAC8A6 */
+  --color-accent: 8 74% 49%;            /* Red #DC3C22 */
+  --color-foreground: 0 0% 10%;         /* #1a1a1a */
   
   /* Derived colors */
-  --primary-foreground: #ffffff;
-  --secondary-foreground: #1a1a1a;
-  --accent-foreground: #ffffff;
-  --background-foreground: #1a1a1a;
+  --color-primary-foreground: 0 0% 100%;     /* white */
+  --color-secondary-foreground: 0 0% 10%;    /* #1a1a1a */
+  --color-accent-foreground: 0 0% 100%;      /* white */
+  --color-background-foreground: 0 0% 10%;   /* #1a1a1a */
   
   /* UI colors using palette */
-  --card: #ffffff;
-  --card-foreground: #000000;
-  --border: var(--secondary);
-  --input: var(--background);
-  --ring: var(--primary);
-  --muted: var(--secondary);
-  --muted-foreground: #666666;
+  --color-card: 0 0% 100%;                   /* white */
+  --color-card-foreground: 0 0% 0%;          /* black */
+  --color-border: var(--color-secondary);
+  --color-input: var(--color-background);
+  --color-ring: var(--color-primary);
+  --color-muted: var(--color-secondary);
+  --color-muted-foreground: 0 0% 40%;        /* #666666 */
+  --color-destructive: 0 84% 60%;
+  --color-destructive-foreground: 0 0% 100%;
+  --color-popover: 0 0% 100%;
+  --color-popover-foreground: 0 0% 10%;
+  
+  /* Font families */
+  --font-geist-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-geist-mono: ui-monospace, SFMono-Regular, "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  --font-noto-arabic: 'Noto Sans Arabic', 'Tahoma', 'Arial', sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
-  --color-accent: var(--accent);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-muted: var(--muted);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
 [data-theme="dark"] {
-  --background: #1a1a1a;
-  --foreground: #ffffff;
-  --card: #2a2a2a;
-  --card-foreground: #ffffff;
-  --border: #404040;
-  --input: #2a2a2a;
-  --muted: #262626;
-  --muted-foreground: #a1a1aa;
+  --color-background: 0 0% 10%;        /* #1a1a1a */
+  --color-foreground: 0 0% 100%;       /* white */
+  --color-card: 0 0% 17%;              /* #2a2a2a */
+  --color-card-foreground: 0 0% 100%;  /* white */
+  --color-border: 0 0% 25%;            /* #404040 */
+  --color-input: 0 0% 17%;             /* #2a2a2a */
+  --color-muted: 0 0% 15%;             /* #262626 */
+  --color-muted-foreground: 0 0% 63%;  /* #a1a1aa */
+  --color-popover: 0 0% 17%;
+  --color-popover-foreground: 0 0% 100%;
 }
 
 /* Color scheme variants */
 [data-color-scheme="blue"] {
-  --primary: #2563eb;           /* Blue 600 */
-  --secondary: #dbeafe;         /* Blue 100 */
-  --accent: #dc2626;            /* Red 600 */
-  --background: #eff6ff;        /* Blue 50 */
+  --color-primary: 217 91% 60%;       /* Blue 600 #2563eb */
+  --color-secondary: 214 95% 93%;     /* Blue 100 #dbeafe */
+  --color-accent: 0 84% 50%;          /* Red 600 #dc2626 */
+  --color-background: 214 100% 97%;   /* Blue 50 #eff6ff */
 }
 
 [data-color-scheme="green"] {
-  --primary: #16a34a;           /* Green 600 */
-  --secondary: #dcfce7;         /* Green 100 */
-  --accent: #dc2626;            /* Red 600 */
-  --background: #f0fdf4;        /* Green 50 */
+  --color-primary: 142 76% 36%;       /* Green 600 #16a34a */
+  --color-secondary: 138 76% 97%;     /* Green 100 #dcfce7 */
+  --color-accent: 0 84% 50%;          /* Red 600 #dc2626 */
+  --color-background: 151 81% 96%;    /* Green 50 #f0fdf4 */
 }
 
 [data-color-scheme="default"] {
-  --primary: #3D74B6;           /* Original blue */
-  --secondary: #EAC8A6;         /* Original tan */
-  --accent: #DC3C22;            /* Original red */
-  --background: #FBF5DE;        /* Original cream */
+  --color-primary: 212 61% 48%;       /* Original blue #3D74B6 */
+  --color-secondary: 35 39% 80%;      /* Original tan #EAC8A6 */
+  --color-accent: 8 74% 49%;          /* Original red #DC3C22 */
+  --color-background: 47 71% 91%;     /* Original cream #FBF5DE */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1a1a;
-    --foreground: #ffffff;
+    --color-background: 0 0% 10%;      /* #1a1a1a */
+    --color-foreground: 0 0% 100%;     /* white */
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  background: hsl(var(--color-background));
+  color: hsl(var(--color-foreground));
+  font-family: var(--font-geist-sans);
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
 /* Ensure all text elements have proper colors */
@@ -90,55 +89,279 @@ body {
   color: inherit;
 }
 
-/* Default text colors for common elements */
-p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
-  color: var(--foreground);
+/* Force ALL text to be black, bold, and bigger - COMPREHENSIVE */
+*, *::before, *::after, 
+p, span, div, h1, h2, h3, h4, h5, h6, 
+label, button, a, td, th, li, ul, ol,
+input, textarea, select, option,
+strong, em, b, i, u, small, sub, sup,
+code, pre, blockquote, cite, q,
+time, abbr, address, dfn, del, ins,
+mark, s, kbd, samp, var,
+figcaption, caption, summary, details,
+article, section, nav, aside, header, footer, main,
+[class*="text-"], [class*="font-"],
+.card *, .button *, .nav *,
+.dropdown *, .modal *, .tooltip *,
+.alert *, .badge *, .tab *, 
+.accordion *, .carousel *,
+.form *, .table *,
+react-select *, .select *, 
+.input *, .textarea *,
+[role="button"], [role="link"], [role="tab"], [role="option"] {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: inherit !important;
 }
 
-/* Dark mode overrides */
+/* Make all text elements bigger and bolder */
+p, span, div, label, button, a, td, th, li, small {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  line-height: 1.6 !important;
+}
+
+/* Specific sizes for headings - make them bigger and bolder */
+h1 {
+  font-size: 3rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+
+h2 {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+h3 {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+h4 {
+  font-size: 1.75rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+h5 {
+  font-size: 1.5rem !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+}
+
+h6 {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+}
+
+/* Make buttons, inputs, and form elements bigger and bolder */
+button, input, textarea, select {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  padding: 12px 16px !important;
+}
+
+/* Make table text bigger */
+table, th, td {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Make card content bigger */
+.card, [class*="card"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Make navigation items bigger */
+nav, .nav, [class*="nav"] {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+/* Only allow white text in specific dark mode contexts - also bold and bigger */
 @media (prefers-color-scheme: dark) {
-  p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
-    color: #ffffff;
+  body, html {
+    background-color: #1a1a1a !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+  }
+  
+  body *, p, span, div, h1, h2, h3, h4, h5, h6, label, button, a, td, th, li, ul, ol {
+    color: #ffffff !important;
+    font-weight: 600 !important;
   }
 }
 
-/* Light mode explicit colors */
-@media (prefers-color-scheme: light) {
-  p, span, div, h1, h2, h3, h4, h5, h6, label, button, a {
-    color: #000000;
-  }
-}
-
-/* Override Tailwind text utilities for better visibility */
+/* Override Tailwind text utilities - force black text, bold, and bigger */
 .text-muted-foreground {
   color: #666666 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
 .text-foreground {
-  color: var(--foreground) !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
 .text-primary {
   color: var(--primary) !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
 .text-secondary {
-  color: var(--secondary-foreground) !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
-/* Card content text colors */
-.card * {
-  color: var(--card-foreground) !important;
+.text-gray-900 {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
-/* Ensure buttons have proper text color */
-button, .btn {
-  color: var(--foreground) !important;
+.text-gray-800 {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
 }
 
-/* Input text colors */
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Force black text in cards */
+.card, .card * {
+  color: #000000 !important;
+}
+
+/* Force black text in buttons */
+button, .btn, button * {
+  color: #000000 !important;
+}
+
+/* Force black text in inputs */
 input, textarea, select {
-  color: var(--foreground) !important;
+  color: #000000 !important;
+}
+
+/* Force black text in navigation */
+nav, nav *, .navigation, .navigation * {
+  color: #000000 !important;
+}
+
+/* Additional comprehensive text color overrides */
+.text-white, .text-gray-50, .text-gray-100, .text-gray-200, 
+.text-gray-300, .text-gray-400, .text-gray-500, .text-gray-600,
+.text-slate-50, .text-slate-100, .text-slate-200, .text-slate-300,
+.text-slate-400, .text-slate-500, .text-slate-600,
+.text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300,
+.text-zinc-400, .text-zinc-500, .text-zinc-600,
+.text-neutral-50, .text-neutral-100, .text-neutral-200,
+.text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600 {
+  color: #000000 !important;
+}
+
+/* Force black text on common component classes */
+.text-muted, .muted, .text-muted-foreground,
+.text-disabled, .disabled, .placeholder,
+.text-subtle, .subtitle, .subtext,
+.text-light, .light, .faded,
+.description, .hint, .help-text {
+  color: #333333 !important;
+}
+
+/* Override any remaining light text */
+[class*="opacity-"], [class*="text-opacity-"] {
+  color: #000000 !important;
+}
+
+/* Force black text in shadcn/ui components */
+[data-radix-select-content] *,
+[data-radix-dropdown-menu-content] *,
+[data-radix-popover-content] *,
+[data-radix-dialog-content] *,
+[data-radix-alert-dialog-content] *,
+[data-radix-toast] *, 
+[data-radix-tooltip-content] * {
+  color: #000000 !important;
+}
+
+/* Dark mode overrides for specific components */
+@media (prefers-color-scheme: dark) {
+  .text-foreground {
+    color: #ffffff !important;
+  }
+  
+  .text-secondary {
+    color: #ffffff !important;
+  }
+  
+  .card, .card * {
+    color: #ffffff !important;
+  }
+  
+  button, .btn, button * {
+    color: #ffffff !important;
+  }
+  
+  input, textarea, select {
+    color: #ffffff !important;
+  }
+  
+  nav, nav *, .navigation, .navigation * {
+    color: #ffffff !important;
+  }
+
+  /* Override black text in dark mode */
+  .text-white, .text-gray-50, .text-gray-100, .text-gray-200, 
+  .text-gray-300, .text-gray-400, .text-gray-500, .text-gray-600,
+  .text-slate-50, .text-slate-100, .text-slate-200, .text-slate-300,
+  .text-slate-400, .text-slate-500, .text-slate-600,
+  .text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300,
+  .text-zinc-400, .text-zinc-500, .text-zinc-600,
+  .text-neutral-50, .text-neutral-100, .text-neutral-200,
+  .text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600 {
+    color: #ffffff !important;
+  }
+
+  .text-muted, .muted, .text-muted-foreground,
+  .text-disabled, .disabled, .placeholder,
+  .text-subtle, .subtitle, .subtext,
+  .text-light, .light, .faded,
+  .description, .hint, .help-text {
+    color: #cccccc !important;
+  }
+
+  [data-radix-select-content] *,
+  [data-radix-dropdown-menu-content] *,
+  [data-radix-popover-content] *,
+  [data-radix-dialog-content] *,
+  [data-radix-alert-dialog-content] *,
+  [data-radix-toast] *, 
+  [data-radix-tooltip-content] * {
+    color: #ffffff !important;
+  }
 }
 
 /* Glassmorphism effects with custom palette */
@@ -591,6 +814,32 @@ input, textarea, select {
   right: auto;
 }
 
+/* ULTIMATE TEXT COLOR ENFORCEMENT - CATCH ALL REMAINING CASES */
+/* This catches any component that might still have light text */
+[style*="color: white"], [style*="color: #fff"], [style*="color: #ffffff"],
+[style*="color: rgb(255"], [style*="color: rgba(255"],
+[style*="color: hsl(0, 0%, 100%"], [style*="color: hsla(0, 0%, 100%"] {
+  color: #000000 !important;
+}
+
+/* Override any inline styles with light colors */
+[style*="color: #f"], [style*="color: #e"], [style*="color: #d"],
+[style*="color: #c"], [style*="color: #b"], [style*="color: #a"] {
+  color: #000000 !important;
+}
+
+/* Force black on any remaining Tailwind utility classes */
+.text-inherit, .text-current, .text-transparent,
+[class*="text-"]:not([class*="text-black"]):not([class*="text-gray-9"]) {
+  color: #000000 !important;
+}
+
+/* Final override for component libraries */
+.MuiTypography-root, .ant-typography, .bp3-text, 
+.chakra-text, .mantine-text, [data-testid*="text"] {
+  color: #000000 !important;
+}
+
 /* Accessibility Enhancements */
 /* Screen Reader Only Content */
 .sr-only {
@@ -853,4 +1102,104 @@ input[type="radio"] {
     height: auto;
     overflow: visible;
   }
+}
+
+/* ===== GLOBAL BIGGER AND BOLDER TEXT OVERRIDES ===== */
+
+/* Override all Tailwind text size utilities to be bigger and bolder */
+.text-xs { font-size: 14px !important; font-weight: 600 !important; }
+.text-sm { font-size: 16px !important; font-weight: 600 !important; }
+.text-base { font-size: 18px !important; font-weight: 600 !important; }
+.text-lg { font-size: 20px !important; font-weight: 600 !important; }
+.text-xl { font-size: 24px !important; font-weight: 700 !important; }
+.text-2xl { font-size: 28px !important; font-weight: 700 !important; }
+.text-3xl { font-size: 32px !important; font-weight: 700 !important; }
+.text-4xl { font-size: 36px !important; font-weight: 800 !important; }
+.text-5xl { font-size: 48px !important; font-weight: 800 !important; }
+.text-6xl { font-size: 60px !important; font-weight: 800 !important; }
+
+/* Make specific UI component text bigger and bolder */
+.badge, .chip, .tag, [class*="badge"], [class*="chip"], [class*="tag"] {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.tooltip, .popover, [class*="tooltip"], [class*="popover"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+.dropdown-menu, .menu, [class*="dropdown"], [class*="menu"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* React component overrides */
+[class*="react-"], [class*="mui-"], [class*="ant-"], [class*="chakra-"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Specific component overrides for common patterns */
+.card-title, [class*="card-title"], .card-header, [class*="card-header"] {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.card-description, [class*="card-description"], .card-content, [class*="card-content"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Button text */
+button, [role="button"], .btn, [class*="btn"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Form labels and inputs */
+label, .label, [class*="label"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Navigation and menu items */
+.nav-link, [class*="nav-link"], .menu-item, [class*="menu-item"] {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+/* Status and notification text */
+.alert, .notification, [class*="alert"], [class*="notification"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Tab content */
+.tab, .tab-content, [class*="tab"], [data-state] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Final catch-all override for any remaining small text */
+[class*="text-"], [data-size], [size] {
+  font-weight: 600 !important;
+  min-font-size: 14px !important;
+}
+
+/* Ensure all clickable elements are bold and readable */
+a, button, [role="button"], [role="link"], [tabindex] {
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+/* Modal and dialog content */
+[role="dialog"], [role="modal"], [class*="dialog"], [class*="modal"] {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+/* Accessibility improvements - ensure readability */
+[aria-label], [aria-describedby], [title] {
+  font-weight: 600 !important;
 }

@@ -47,11 +47,168 @@ export function VoiceAssistant() {
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(true); // react-speech-kit handles this internally
   const [isPlayingAudio, setIsPlayingAudio] = useState(false); // For N8N audio playback
+  const [isAutoListening, setIsAutoListening] = useState(true); // Auto-listen mode
+  const [isContinuousMode, setIsContinuousMode] = useState(true); // Continuous conversation
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // React Speech Kit hooks
   const { speak, cancel, speaking, supported: speechSupported, voices } = useSpeechSynthesis();
+  
+  // Enhanced voice activity detection with immediate interruption
+  const startContinuousListening = () => {
+    if (!hasSpeechRecognition || !isContinuousMode) return;
+    
+    console.log('🎤 Starting advanced continuous voice recognition...');
+    
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      // Optimized settings for better interruption detection
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+      
+      let currentTranscript = '';
+      let hasDetectedSpeech = false;
+      let speechStartTime = 0;
+      let lastSpeechTime = 0;
+      
+      recognition.onstart = () => {
+        console.log('🎤 Advanced recognition started - monitoring for interruptions');
+      };
+      
+      recognition.onspeechstart = () => {
+        console.log('🔥 SPEECH DETECTED - INTERRUPTING AI IMMEDIATELY!');
+        hasDetectedSpeech = true;
+        speechStartTime = Date.now();
+        lastSpeechTime = Date.now();
+        
+        // IMMEDIATE interruption - stop all AI speech RIGHT NOW
+        stopSpeaking();
+        
+        // Clear any pending timeouts
+        if (speechTimeoutRef.current) {
+          clearTimeout(speechTimeoutRef.current);
+          speechTimeoutRef.current = null;
+        }
+      };
+      
+      recognition.onspeechend = () => {
+        console.log('🎤 Speech ended - starting silence detection timer');
+        
+        // Start timer to detect when user is actually finished
+        speechTimeoutRef.current = setTimeout(() => {
+          if (currentTranscript.trim() && hasDetectedSpeech) {
+            console.log('✅ User finished speaking. Final transcript:', currentTranscript.trim());
+            handleUserMessage(currentTranscript.trim());
+            currentTranscript = '';
+            hasDetectedSpeech = false;
+          }
+        }, 1500); // Shorter timeout - 1.5 seconds
+      };
+      
+      recognition.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        // Process all results
+        for (let i = 0; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // Update current transcript
+        currentTranscript = (finalTranscript + interimTranscript).trim();
+        
+        // If we detect ANY speech (even interim), update last speech time
+        if (interimTranscript.trim() || finalTranscript.trim()) {
+          lastSpeechTime = Date.now();
+          
+          // If AI is speaking and we detect user speech, STOP IMMEDIATELY
+          if (isSpeaking && !hasDetectedSpeech) {
+            console.log('⚡ USER INTERRUPTED - STOPPING AI SPEECH!');
+            stopSpeaking();
+            hasDetectedSpeech = true;
+          }
+          
+          // Clear any existing timeout since user is still speaking
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+            speechTimeoutRef.current = null;
+          }
+        }
+        
+        // Show real-time transcription for debugging
+        if (currentTranscript) {
+          console.log('📝 Live transcript:', currentTranscript);
+        }
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('🎤 Recognition error:', event.error);
+        
+        // Handle specific errors
+        if (event.error === 'no-speech') {
+          console.log('🔄 No speech detected, restarting recognition...');
+        } else if (event.error === 'audio-capture') {
+          console.log('🔄 Audio capture issue, restarting recognition...');
+        } else if (event.error === 'not-allowed') {
+          setError('Microphone access denied. Please allow microphone access.');
+          return;
+        }
+        
+        // Restart recognition after brief delay for most errors
+        if (isContinuousMode) {
+          setTimeout(() => {
+            startContinuousListening();
+          }, 1000);
+        }
+      };
+      
+      recognition.onend = () => {
+        console.log('🎤 Recognition ended, restarting if in continuous mode...');
+        
+        // Always restart if still in continuous mode
+        if (isContinuousMode) {
+          setTimeout(() => {
+            startContinuousListening();
+          }, 300); // Faster restart
+        }
+      };
+      
+      recognitionRef.current = recognition;
+      recognition.start();
+      
+    } catch (error) {
+      console.error('❌ Failed to start advanced recognition:', error);
+      setError('Failed to start voice recognition: ' + error.message);
+    }
+  };
+  
+  const stopContinuousListening = () => {
+    console.log('🛑 Stopping continuous recognition');
+    setIsContinuousMode(false);
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+  };
   
   // Force voices to load (sometimes they're empty initially)
   useEffect(() => {
@@ -68,6 +225,7 @@ export function VoiceAssistant() {
       };
     }
   }, [speechSupported, voices.length]);
+  
   const {
     listen,
     listening,
@@ -97,6 +255,19 @@ export function VoiceAssistant() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
+  // Start continuous listening when in auto mode
+  useEffect(() => {
+    if (isOpen && isContinuousMode && isAutoListening && hasSpeechRecognition) {
+      startContinuousListening();
+    } else {
+      stopContinuousListening();
+    }
+    
+    return () => {
+      stopContinuousListening();
+    };
+  }, [isOpen, isContinuousMode, isAutoListening, hasSpeechRecognition]);
 
   // Check for browser support with detailed debugging
   useEffect(() => {
@@ -132,6 +303,7 @@ export function VoiceAssistant() {
       }
       cancel(); // Cancel speech synthesis
       stop(); // Stop speech recognition
+      stopContinuousListening(); // Stop continuous recognition
     };
   }, [currentAudio, cancel, stop]);
 
@@ -212,12 +384,10 @@ export function VoiceAssistant() {
   };
 
   const speakText = (text: string) => {
-    console.log('🔊 Speaking text:', text);
-    console.log('🔊 Speech synthesis details:');
-    console.log('  - speechSupported:', speechSupported);
-    console.log('  - speak function available:', !!speak);
-    console.log('  - hasSpeechSynthesis:', hasSpeechSynthesis);
-    console.log('  - Available voices:', voices.length);
+    console.log('🔊 Starting speech synthesis:', text.substring(0, 50) + '...');
+    
+    // Always cancel any ongoing speech first
+    stopSpeaking();
     
     if (speechSupported && speak) {
       // Use react-speech-kit if available
@@ -228,8 +398,6 @@ export function VoiceAssistant() {
           : voice.lang.startsWith('en')
       );
       
-      console.log('🎤 Selected voice:', preferredVoice?.name || 'default');
-      
       speak({ 
         text,
         voice: preferredVoice,
@@ -238,9 +406,8 @@ export function VoiceAssistant() {
         volume: 1.0
       });
     } else if (hasSpeechSynthesis) {
-      // Fallback to native API
-      console.log('📢 Using native speech synthesis as fallback');
-      window.speechSynthesis.cancel();
+      // Fallback to native API with better interruption handling
+      console.log('📢 Using native speech synthesis');
       
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.9;
@@ -249,8 +416,6 @@ export function VoiceAssistant() {
       utterance.lang = language === 'ar' ? 'ar-SA' : 'en-US';
       
       const availableVoices = window.speechSynthesis.getVoices();
-      console.log('🎤 Available native voices:', availableVoices.length);
-      
       const preferredVoice = availableVoices.find(voice => 
         language === 'ar' 
           ? voice.lang.startsWith('ar')
@@ -259,16 +424,27 @@ export function VoiceAssistant() {
       
       if (preferredVoice) {
         utterance.voice = preferredVoice;
-        console.log('🎤 Selected native voice:', preferredVoice.name);
-      } else {
-        console.log('🎤 Using default native voice');
       }
       
-      utterance.onstart = () => console.log('🔊 Native speech started');
-      utterance.onend = () => console.log('✅ Native speech ended');
-      utterance.onerror = (e) => console.error('❌ Native speech error:', e);
+      // Enhanced event handlers for better debugging
+      utterance.onstart = () => {
+        console.log('🔊 AI started speaking - listening for interruptions');
+      };
       
-      window.speechSynthesis.speak(utterance);
+      utterance.onend = () => {
+        console.log('✅ AI finished speaking normally');
+      };
+      
+      utterance.onerror = (e) => {
+        console.error('❌ Speech synthesis error:', e);
+      };
+      
+      // Speak with better error handling
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        console.error('❌ Failed to start speech synthesis:', error);
+      }
     } else {
       console.warn('❌ Speech synthesis not supported');
     }
@@ -334,21 +510,52 @@ export function VoiceAssistant() {
   };
 
   const stopSpeaking = () => {
+    console.log('🛑 STOPPING ALL AI SPEECH IMMEDIATELY');
+    
+    // Stop any audio playback
     if (currentAudio) {
-      currentAudio.pause();
-      setCurrentAudio(null);
-      setIsPlayingAudio(false);
+      try {
+        currentAudio.pause();
+        currentAudio.currentTime = 0; // Reset to beginning
+        setCurrentAudio(null);
+        setIsPlayingAudio(false);
+        console.log('✅ Audio playback stopped');
+      } catch (error) {
+        console.error('❌ Error stopping audio:', error);
+      }
     }
     
-    // Stop react-speech-kit
+    // Stop react-speech-kit (multiple attempts for reliability)
     if (cancel) {
-      cancel();
+      try {
+        cancel();
+        console.log('✅ React-speech-kit cancelled');
+      } catch (error) {
+        console.error('❌ Error cancelling react-speech-kit:', error);
+      }
     }
     
-    // Stop native speech synthesis as fallback
-    if (hasSpeechSynthesis) {
-      window.speechSynthesis.cancel();
+    // Stop native speech synthesis (FORCE STOP)
+    if (hasSpeechSynthesis && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel(); // First cancel
+        window.speechSynthesis.pause();  // Then pause
+        
+        // Force stop by canceling again after brief delay
+        setTimeout(() => {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            console.log('🔄 Force-cancelled persistent speech');
+          }
+        }, 100);
+        
+        console.log('✅ Native speech synthesis stopped');
+      } catch (error) {
+        console.error('❌ Error stopping native speech:', error);
+      }
     }
+    
+    console.log('✓ All speech interruption methods executed');
   };
 
   const startVoiceRecording = () => {
@@ -399,7 +606,7 @@ export function VoiceAssistant() {
   };
 
   const initializeAssistant = () => {
-    console.log('🚀 Initializing Voice Assistant');
+    console.log('🚀 Initializing Advanced Voice Assistant');
     console.log('🔍 Browser support status:');
     console.log('  - Speech synthesis supported:', speechSupported);
     console.log('  - Speech recognition supported:', recognitionSupported);
@@ -408,20 +615,21 @@ export function VoiceAssistant() {
     console.log('  - Overall supported:', isSupported);
     
     setIsOpen(true);
+    setIsContinuousMode(true); // Enable continuous mode by default
     
     const welcomeMessage: VoiceMessage = {
       id: Date.now().toString(),
       text: language === 'ar' 
-        ? 'مرحباً! أنا مساعدك الصوتي الذكي. يمكنك التحدث معي عن أي شيء تريده. اضغط على الميكروفون وابدأ الحديث.'
-        : 'Hello! I\'m your intelligent voice assistant. You can talk to me about anything. Press the microphone and start speaking.',
+        ? 'مرحباً! أنا مساعدك الصوتي الذكي. ابدأ في الحديث معي في أي وقت - سأقاطعك فوراً!'
+        : 'Hello! I\'m your advanced voice assistant. I\'m now listening continuously - just start talking anytime and I\'ll stop immediately when you speak!',
       type: 'assistant',
       timestamp: new Date()
     };
     
     setMessages([welcomeMessage]);
     
-    // Test speaking immediately
-    console.log('🔊 Attempting to speak welcome message...');
+    // Speak welcome message
+    console.log('🔊 Speaking welcome message with interruption capability...');
     speakText(welcomeMessage.text);
   };
 
@@ -492,14 +700,40 @@ export function VoiceAssistant() {
               <div>
                 <h3 className="font-semibold text-gray-800">{t('voiceAssistant')}</h3>
                 <p className="text-xs text-gray-600">
-                  {isListening ? t('listening') : 
-                   isSpeaking ? t('speaking') : 
-                   isProcessing ? t('processing') : t('ready')}
+                  {isListening ? '🎤 Actively Listening...' : 
+                   isSpeaking ? '🔊 Speaking (will stop when you talk)' : 
+                   isProcessing ? '🧠 Processing your request...' : 
+                   isContinuousMode ? '⚡ Always listening - talk anytime!' : t('ready')}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const newMode = !isContinuousMode;
+                  setIsContinuousMode(newMode);
+                  console.log('🔄 Continuous mode toggled:', newMode ? 'ON' : 'OFF');
+                }}
+                className={`h-8 w-8 p-0 ${
+                  isContinuousMode 
+                    ? 'text-green-600 hover:text-green-700 bg-green-100 ring-2 ring-green-200' 
+                    : 'text-gray-400 hover:text-gray-600 bg-gray-50'
+                }`}
+                title={isContinuousMode ? '✅ SMART MODE: Stops talking when you speak!' : '⚠️ MANUAL MODE: Click mic to talk'}
+              >
+                {isContinuousMode ? (
+                  <div className="relative">
+                    <Mic className="h-4 w-4" />
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  </div>
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </Button>
+              
               {isSpeaking && (
                 <Button
                   variant="ghost"
@@ -713,18 +947,39 @@ export function VoiceAssistant() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Button
-                  onClick={isListening ? stop : startVoiceRecording}
-                  disabled={isProcessing}
-                  className={`w-12 h-12 rounded-full transition-all duration-200 ${
-                    isListening 
-                      ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-                      : 'bg-blue-500 hover:bg-blue-600 hover:scale-110'
-                  }`}
-                  title={isListening ? t('stopListening') : t('startListening')}
-                >
-                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </Button>
+                {!isContinuousMode && (
+                  <Button
+                    onClick={isListening ? stop : startVoiceRecording}
+                    disabled={isProcessing}
+                    className={`w-12 h-12 rounded-full transition-all duration-200 ${
+                      isListening 
+                        ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+                        : 'bg-blue-500 hover:bg-blue-600 hover:scale-110'
+                    }`}
+                    title={isListening ? t('stopListening') : t('startListening')}
+                  >
+                    {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </Button>
+                )}
+                
+                {isContinuousMode && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-100 to-blue-100 flex items-center justify-center relative">
+                      <Mic className="h-6 w-6 text-green-600" />
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 rounded-full bg-green-500 opacity-20 animate-ping"></div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-semibold text-green-700 flex items-center">
+                        ⚡ Smart Listening Mode
+                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-bold">ACTIVE</span>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        🔊 I'll stop talking the moment you speak!
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {isListening && (
                   <div className="flex items-center space-x-2">

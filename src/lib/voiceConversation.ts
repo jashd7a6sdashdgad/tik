@@ -3,6 +3,8 @@
 import { VoiceRecognition, VoiceCommand, voiceRecognition } from './voiceRecognition';
 import { voiceCommandProcessor, VoiceCommandResult } from './voiceCommandProcessor';
 import { voiceNarrator, narratorSpeak } from './voiceNarrator';
+import { n8nVoiceAssistant, N8NVoiceResponse } from './n8nVoiceAssistant';
+import { AudioRecorder, AudioRecordingResult } from './audioRecorder';
 
 export interface ConversationState {
   isActive: boolean;
@@ -35,6 +37,7 @@ export class VoiceConversation {
   private isInitialized = false;
   private interruptionEnabled = true;
   private awaitingResponse = false;
+  private audioRecorder: AudioRecorder | null = null;
 
   constructor() {
     this.state = {
@@ -127,27 +130,8 @@ export class VoiceConversation {
       return;
     }
 
-    this.callbacks.onCommand?.(command);
-
-    // Add to conversation history
-    this.addToHistory({
-      timestamp: command.timestamp,
-      type: 'user',
-      content: command.transcript,
-      confidence: command.confidence
-    });
-
-    // Process the command
-    const result = voiceCommandProcessor.processCommand(command.transcript, command.confidence);
-    
-    if (result) {
-      this.handleCommandResult(result);
-    }
-
-    this.updateState({ 
-      lastCommand: command.transcript,
-      awaitingResponse: true 
-    });
+    // Use N8N voice assistant for enhanced AI responses
+    this.handleN8NVoiceCommand(command);
   }
 
   private async handleCommandResult(result: VoiceCommandResult): Promise<void> {
@@ -171,6 +155,188 @@ export class VoiceConversation {
     } catch (error) {
       console.error('Error executing voice command:', error);
       this.handleError('Sorry, I encountered an error while processing your request.');
+    }
+  }
+
+  private async handleN8NVoiceCommand(command: VoiceCommand): Promise<void> {
+    if (!this.state.isActive) return;
+
+    console.log('🚀 Sending to N8N webhook:', command.transcript);
+
+    this.callbacks.onCommand?.(command);
+
+    // Add user message to history
+    this.addToHistory({
+      timestamp: command.timestamp,
+      type: 'user',
+      content: command.transcript,
+      confidence: command.confidence
+    });
+
+    this.updateState({ 
+      lastCommand: command.transcript,
+      awaitingResponse: true 
+    });
+
+    try {
+      // Send to N8N voice assistant webhook
+      console.log('📡 Calling N8N webhook...');
+      const response: N8NVoiceResponse = await n8nVoiceAssistant.sendMessage(
+        command.transcript,
+        'en'
+      );
+
+      if (response.success && response.response) {
+        // Add assistant response to history
+        this.addToHistory({
+          timestamp: new Date(),
+          type: 'assistant',
+          content: response.response
+        });
+
+        // Handle audio response - prioritize binary, then base64, then URL, finally TTS
+        if (response.audioBinary && response.audioMimeType) {
+          console.log('🎵 Playing binary audio from N8N');
+          await this.playBinaryAudio(response.audioBinary, response.audioMimeType);
+        } else if (response.audioBase64) {
+          console.log('🎵 Playing base64 audio from N8N');
+          this.playAudioFromBase64(response.audioBase64);
+        } else if (response.audioUrl) {
+          console.log('🎵 Playing URL audio from N8N');
+          this.playAudioFromUrl(response.audioUrl);
+        } else {
+          console.log('🔊 Using text-to-speech for N8N response');
+          // Speak the text response
+          narratorSpeak(response.response, 'response', 'high');
+        }
+
+        // Handle navigation actions
+        if (response.action === 'navigate' && response.data?.destination) {
+          window.dispatchEvent(new CustomEvent('voice:navigate', { 
+            detail: { destination: response.data.destination } 
+          }));
+        }
+
+        this.updateState({ 
+          lastResponse: response.response,
+          awaitingResponse: false 
+        });
+      } else {
+        throw new Error(response.error || 'N8N response failed');
+      }
+    } catch (error) {
+      console.error('N8N Voice Assistant error:', error);
+      this.handleError('Sorry, I encountered an error while processing your request with the AI assistant.');
+    }
+  }
+
+  private playAudioFromBase64(audioBase64: string): void {
+    try {
+      console.log('🎵 Playing audio from N8N base64');
+      
+      // Convert base64 to blob
+      const byteCharacters = atob(audioBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      const audioBlob = new Blob([byteArray], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audio = new Audio(audioUrl);
+      audio.onplay = () => {
+        console.log('🔊 N8N audio started playing');
+        this.updateState({ isSpeaking: true });
+      };
+      audio.onended = () => {
+        console.log('✅ N8N audio finished playing');
+        this.updateState({ isSpeaking: false });
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
+      };
+      audio.onerror = (error) => {
+        console.error('❌ N8N audio playback error:', error);
+        this.updateState({ isSpeaking: false });
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
+      };
+      
+      audio.play().catch(console.error);
+    } catch (error) {
+      console.error('❌ Failed to play N8N audio:', error);
+      this.updateState({ isSpeaking: false });
+    }
+  }
+
+  private playAudioFromUrl(audioUrl: string): void {
+    try {
+      console.log('🎵 Playing audio from N8N URL:', audioUrl);
+      
+      const audio = new Audio(audioUrl);
+      audio.onplay = () => {
+        console.log('🔊 N8N audio started playing');
+        this.updateState({ isSpeaking: true });
+      };
+      audio.onended = () => {
+        console.log('✅ N8N audio finished playing');
+        this.updateState({ isSpeaking: false });
+      };
+      audio.onerror = (error) => {
+        console.error('❌ N8N audio playback error:', error);
+        this.updateState({ isSpeaking: false });
+      };
+      
+      audio.play().catch(console.error);
+    } catch (error) {
+      console.error('❌ Failed to play N8N audio:', error);
+      this.updateState({ isSpeaking: false });
+    }
+  }
+
+  private async playBinaryAudio(audioBinary: ArrayBuffer, mimeType: string): Promise<void> {
+    try {
+      console.log('🎵 Playing binary audio from N8N:', {
+        size: audioBinary.byteLength,
+        mimeType
+      });
+
+      // Create blob from binary data
+      const audioBlob = new Blob([audioBinary], { type: mimeType });
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audio = new Audio(audioUrl);
+      
+      audio.onloadeddata = () => {
+        console.log('📊 Binary audio loaded:', {
+          duration: audio.duration,
+          readyState: audio.readyState
+        });
+      };
+      
+      audio.onplay = () => {
+        console.log('🔊 Binary audio started playing');
+        this.updateState({ isSpeaking: true });
+      };
+      
+      audio.onended = () => {
+        console.log('✅ Binary audio finished playing');
+        this.updateState({ isSpeaking: false });
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
+      };
+      
+      audio.onerror = (error) => {
+        console.error('❌ Binary audio playback error:', error);
+        this.updateState({ isSpeaking: false });
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
+      };
+
+      // Start playback
+      await audio.play();
+      
+    } catch (error) {
+      console.error('❌ Failed to play binary audio:', error);
+      this.updateState({ isSpeaking: false });
     }
   }
 
@@ -215,24 +381,140 @@ export class VoiceConversation {
     this.updateState({ conversationHistory: this.state.conversationHistory });
   }
 
+  // Audio recording based conversation
+  async startAudioRecording(): Promise<void> {
+    if (!this.state.isActive) return;
+    
+    try {
+      console.log('🎤 Starting audio recording for N8N...');
+      
+      if (!this.audioRecorder) {
+        this.audioRecorder = new AudioRecorder({
+          format: 'webm',
+          sampleRate: 16000,
+          channels: 1,
+          maxDuration: 10 // 10 seconds max
+        });
+      }
+
+      this.updateState({ isListening: true });
+      await this.audioRecorder.startRecording();
+      
+      console.log('✅ Audio recording started');
+    } catch (error) {
+      console.error('❌ Failed to start audio recording:', error);
+      this.handleError('Failed to start audio recording. Please check microphone permissions.');
+      this.updateState({ isListening: false });
+    }
+  }
+
+  async stopAudioRecording(): Promise<void> {
+    if (!this.audioRecorder || !this.state.isListening) return;
+
+    try {
+      console.log('🛑 Stopping audio recording...');
+      
+      const audioResult: AudioRecordingResult = await this.audioRecorder.stopRecording();
+      this.updateState({ isListening: false, awaitingResponse: true });
+
+      console.log('📦 Audio recording completed:', {
+        duration: audioResult.duration,
+        format: audioResult.audioFormat,
+        size: audioResult.audioBase64.length
+      });
+
+      // Send audio to N8N with fallback text
+      await this.sendAudioToN8N(audioResult);
+      
+    } catch (error) {
+      console.error('❌ Failed to stop audio recording:', error);
+      this.handleError('Failed to process audio recording.');
+      this.updateState({ isListening: false, awaitingResponse: false });
+    }
+  }
+
+  private async sendAudioToN8N(audioResult: AudioRecordingResult): Promise<void> {
+    try {
+      console.log('🚀 Sending audio to N8N webhook...');
+
+      // Add user audio to history
+      this.addToHistory({
+        timestamp: new Date(),
+        type: 'user',
+        content: '[Audio Message]',
+        confidence: 1.0
+      });
+
+      // Send both audio and fallback text to N8N
+      const response: N8NVoiceResponse = await n8nVoiceAssistant.sendMessage(
+        'User sent an audio message', // Fallback text
+        'en',
+        audioResult.audioBase64,
+        audioResult.audioFormat
+      );
+
+      if (response.success && response.response) {
+        console.log('✅ N8N audio response received');
+
+        // Add assistant response to history
+        this.addToHistory({
+          timestamp: new Date(),
+          type: 'assistant',
+          content: response.response
+        });
+
+        // Handle audio response - prioritize binary, then base64, then URL, finally TTS
+        if (response.audioBinary && response.audioMimeType) {
+          console.log('🎵 Playing binary audio from N8N');
+          await this.playBinaryAudio(response.audioBinary, response.audioMimeType);
+        } else if (response.audioBase64) {
+          console.log('🎵 Playing base64 audio from N8N');
+          this.playAudioFromBase64(response.audioBase64);
+        } else if (response.audioUrl) {
+          console.log('🎵 Playing URL audio from N8N');
+          this.playAudioFromUrl(response.audioUrl);
+        } else {
+          console.log('🔊 Using text-to-speech for N8N response');
+          // Speak the text response
+          narratorSpeak(response.response, 'response', 'high');
+        }
+
+        // Handle navigation actions
+        if (response.action === 'navigate' && response.data?.destination) {
+          window.dispatchEvent(new CustomEvent('voice:navigate', { 
+            detail: { destination: response.data.destination } 
+          }));
+        }
+
+        this.updateState({ 
+          lastResponse: response.response,
+          awaitingResponse: false 
+        });
+      } else {
+        throw new Error(response.error || 'N8N audio response failed');
+      }
+    } catch (error) {
+      console.error('❌ N8N audio processing error:', error);
+      this.handleError('Sorry, I encountered an error processing your audio message.');
+    }
+  }
+
   // Public methods
   startConversation(): boolean {
     if (!voiceRecognition.isRecognitionSupported()) {
-      this.handleError('Voice recognition is not supported in your browser.');
+      console.error('Voice recognition not supported');
       return false;
     }
 
     this.updateState({ isActive: true });
+    console.log('🎤 N8N Voice conversation activated - ready for commands');
     
-    // Welcome message
-    narratorSpeak('Voice conversation mode activated! I\'m listening for your commands.', 'system', 'high');
-    
-    // Start listening after welcome message
+    // Start listening immediately without annoying welcome message
     setTimeout(() => {
       if (this.state.isActive) {
         this.startListening();
       }
-    }, 2000);
+    }, 500);
 
     return true;
   }
@@ -241,7 +523,7 @@ export class VoiceConversation {
     this.updateState({ isActive: false });
     voiceRecognition.stopListening();
     voiceNarrator.stopSpeaking();
-    narratorSpeak('Voice conversation ended. I\'m still here if you need me!', 'system', 'medium');
+    console.log('🛑 N8N Voice conversation ended');
   }
 
   pauseConversation(): void {
@@ -335,3 +617,7 @@ export const startVoiceConversation = (): boolean => voiceConversation.startConv
 export const stopVoiceConversation = (): void => voiceConversation.stopConversation();
 export const toggleVoiceConversation = (): boolean => voiceConversation.toggleConversation();
 export const isVoiceConversationActive = (): boolean => voiceConversation.isConversationActive();
+
+// Audio recording functions
+export const startAudioRecording = (): Promise<void> => voiceConversation.startAudioRecording();
+export const stopAudioRecording = (): Promise<void> => voiceConversation.stopAudioRecording();
