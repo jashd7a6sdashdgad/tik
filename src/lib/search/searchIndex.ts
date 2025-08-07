@@ -1,4 +1,4 @@
-'use client';
+// Search Index Engine for Document Indexing and Retrieval
 
 export interface SearchDocument {
   id: string;

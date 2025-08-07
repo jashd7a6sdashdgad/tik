@@ -119,16 +119,20 @@ export default function WeatherPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <Sun className="h-8 w-8 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl shadow-lg">
+                <Sun className="h-8 w-8 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-primary">{t('weatherTitle')}</h1>
-                <p className="text-black">{t('realTimeWeatherInfo')}</p>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('weatherTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('realTimeWeatherInfo')}</p>
               </div>
             </div>
             
@@ -145,9 +149,6 @@ export default function WeatherPage() {
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
         <Card className="card-3d mb-8">
           <CardHeader>
@@ -366,14 +367,14 @@ export default function WeatherPage() {
             </Card>
           </div>
         ) : null}
-      </main>
-
-      {/* Voice Assistant Widget */}
-      <VoiceAssistantWidget 
-        page="weather" 
-        position="fixed"
-        size="md"
-      />
+        
+        {/* Voice Assistant Widget */}
+        <VoiceAssistantWidget 
+          page="weather" 
+          position="fixed"
+          size="md"
+        />
+      </div>
     </div>
   );
 }

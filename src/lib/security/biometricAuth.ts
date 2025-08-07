@@ -204,7 +204,7 @@ class BiometricAuth {
         credentialId: credential.id,
         authenticatorData: response.authenticatorData,
         signature: response.signature,
-        userHandle: response.userHandle,
+        userHandle: response.userHandle || undefined,
         biometricType: usedCredential?.type || 'unknown',
       };
 

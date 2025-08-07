@@ -299,14 +299,21 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">{t('calendarTitle')}</h1>
-              <p className="text-black">{t('settingsDescription')}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl shadow-lg">
+                <CalendarIcon className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('calendarTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('settingsDescription')}</p>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -321,21 +328,25 @@ export default function CalendarPage() {
             </div>
           </div>
         </div>
-      </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Create with Voice */}
-        <Card className="mb-8 border-blue-200 bg-blue-50/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {t('createEvent')} 
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                🧠 Smart Scheduling
-              </span>
-            </CardTitle>
-            <CardDescription>{t('settingsDescription')} Try: "Book 1 hour for gym every Tuesday at 6 PM"</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Modern Quick Create Card */}
+        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 mb-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl shadow-lg">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent flex items-center gap-3">
+                {t('createEvent')}
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg">
+                  🧠 Smart Scheduling
+                </span>
+              </h2>
+              <p className="text-gray-600 font-medium">{t('settingsDescription')} Try: "Book 1 hour for gym every Tuesday at 6 PM"</p>
+            </div>
+          </div>
+          <div>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <Input
@@ -364,10 +375,10 @@ export default function CalendarPage() {
               </div>
             </div>
             {transcript && (
-              <p className="mt-2 text-sm text-black italic">{t('loading')}: "{transcript}"</p>
+              <p className="mt-2 text-sm text-gray-600 italic">{t('loading')}: "{transcript}"</p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Smart Features: Conflict Detection */}
         {showConflicts && conflicts.length > 0 && (
@@ -666,6 +677,7 @@ export default function CalendarPage() {
           </Card>
         </div>
       </main>
+      </div>
     </div>
   );
 }

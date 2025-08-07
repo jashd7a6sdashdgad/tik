@@ -1,4 +1,4 @@
-'use client';
+// N8N Voice Assistant Integration for AI-Powered Voice Interactions
 
 // Enhanced N8N Voice Assistant with Website Navigation System
 

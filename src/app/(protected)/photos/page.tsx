@@ -498,27 +498,37 @@ export default function PhotosPage() {
 
   // --- Render ---
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">{t('photos')}</h1>
-          <p className="text-muted-foreground">{t('manageYourPhotoAlbum')}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl shadow-lg">
+                <Camera className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('photos')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('manageYourPhotoAlbum')}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isLoading} className="gap-2">
+                {isUploading ? (
+                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>{t('uploading')}</>
+                ) : (
+                  <><Upload className="h-4 w-4" />{t('uploadPhotos')}</>
+                )}
+              </Button>
+              <Button onClick={loadPhotos} disabled={isLoading} variant="outline" className="gap-2">
+                {isLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div> : '🔄'}
+                Refresh
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isLoading} className="gap-2">
-            {isUploading ? (
-              <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>{t('uploading')}</>
-            ) : (
-              <><Upload className="h-4 w-4" />{t('uploadPhotos')}</>
-            )}
-          </Button>
-          <Button onClick={loadPhotos} disabled={isLoading} variant="outline" className="gap-2">
-            {isLoading ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div> : '🔄'}
-            Refresh
-          </Button>
-        </div>
-      </div>
 
       {/* Notifications */}
       {error && (
@@ -696,12 +706,13 @@ export default function PhotosPage() {
         className="hidden"
       />
 
-      {/* Voice Assistant Widget */}
-      <VoiceAssistantWidget 
-        page="photos" 
-        position="fixed"
-        size="md"
-      />
+        {/* Voice Assistant Widget */}
+        <VoiceAssistantWidget 
+          page="photos" 
+          position="fixed"
+          size="md"
+        />
+      </div>
     </div>
   );
 }

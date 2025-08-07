@@ -425,51 +425,57 @@ export default function EmailIntelligencePage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Brain className="w-8 h-8 text-primary" />
-            Email Intelligence
-          </h1>
-          <p className="text-muted-foreground">
-            Smart email management with AI-powered insights and automation
-          </p>
-        </div>
-        <div className="flex gap-2 items-center">
-          {/* Connection Status */}
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <Wifi className="w-4 h-4" />
-                <span className="text-sm font-medium">Gmail Connected</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                <Brain className="h-8 w-8 text-white" />
               </div>
-            ) : (
-              <div className="flex items-center gap-2 text-gray-500">
-                <WifiOff className="w-4 h-4" />
-                <span className="text-sm font-medium">Using Demo Data</span>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  Email Intelligence
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">Smart email management with AI-powered insights and automation</p>
               </div>
-            )}
+            </div>
+            <div className="flex gap-2 items-center">
+              {/* Connection Status */}
+              <div className="flex items-center gap-2">
+                {isConnected ? (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <Wifi className="w-4 h-4" />
+                    <span className="text-sm font-medium">Gmail Connected</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <WifiOff className="w-4 h-4" />
+                    <span className="text-sm font-medium">Using Demo Data</span>
+                  </div>
+                )}
+              </div>
+              
+              <Button variant="outline">
+                <Settings className="w-4 h-4 mr-2" />
+                Configure
+              </Button>
+              
+              <Button 
+                onClick={syncEmails}
+                disabled={!isConnected || syncStatus === 'syncing'}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${
+                  syncStatus === 'syncing' ? 'animate-spin' : ''
+                }`} />
+                {syncStatus === 'syncing' ? 'Syncing...' : 
+                 syncStatus === 'success' ? 'Synced!' :
+                 syncStatus === 'error' ? 'Sync Failed' : 'Sync Emails'}
+              </Button>
+            </div>
           </div>
-          
-          <Button variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
-            Configure
-          </Button>
-          
-          <Button 
-            onClick={syncEmails}
-            disabled={!isConnected || syncStatus === 'syncing'}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${
-              syncStatus === 'syncing' ? 'animate-spin' : ''
-            }`} />
-            {syncStatus === 'syncing' ? 'Syncing...' : 
-             syncStatus === 'success' ? 'Synced!' :
-             syncStatus === 'error' ? 'Sync Failed' : 'Sync Emails'}
-          </Button>
         </div>
-      </div>
 
       {/* Email Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
@@ -1203,6 +1209,7 @@ export default function EmailIntelligencePage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

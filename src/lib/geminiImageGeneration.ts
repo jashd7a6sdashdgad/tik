@@ -1,4 +1,4 @@
-'use client';
+// Gemini Image Generation Integration for AI-Powered Visual Content
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 

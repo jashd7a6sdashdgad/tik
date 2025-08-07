@@ -1,5 +1,3 @@
-'use client';
-
 // Audio Recording Utility for Voice Assistant
 
 export interface AudioRecordingResult {
@@ -37,7 +35,6 @@ export class AudioRecorder {
     try {
       console.log('🎤 Starting audio recording...');
       
-      // Request microphone access
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: this.config.sampleRate,
@@ -48,7 +45,6 @@ export class AudioRecorder {
         }
       });
 
-      // Determine MIME type based on format
       let mimeType = 'audio/webm;codecs=opus';
       if (this.config.format === 'wav') {
         mimeType = 'audio/wav';
@@ -56,7 +52,6 @@ export class AudioRecorder {
         mimeType = 'audio/mpeg';
       }
 
-      // Check if MIME type is supported
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         console.warn(`MIME type ${mimeType} not supported, falling back to default`);
         mimeType = 'audio/webm';
@@ -69,7 +64,7 @@ export class AudioRecorder {
 
       this.audioChunks = [];
       this.startTime = Date.now();
-      
+
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
@@ -92,10 +87,8 @@ export class AudioRecorder {
         this.isRecording = false;
       };
 
-      // Start recording
-      this.mediaRecorder.start(1000); // Collect data every second
+      this.mediaRecorder.start(1000);
 
-      // Auto-stop after max duration
       setTimeout(() => {
         if (this.isRecording) {
           console.log('⏰ Max duration reached, stopping recording');
@@ -128,7 +121,6 @@ export class AudioRecorder {
             throw new Error('No audio data recorded');
           }
 
-          // Create audio blob
           const audioBlob = new Blob(this.audioChunks, { 
             type: this.mediaRecorder!.mimeType || 'audio/webm' 
           });
@@ -138,10 +130,8 @@ export class AudioRecorder {
             type: audioBlob.type
           });
 
-          // Convert to base64
           const audioBase64 = await this.blobToBase64(audioBlob);
           
-          // Determine format from MIME type
           let format = 'webm';
           if (audioBlob.type.includes('wav')) format = 'wav';
           else if (audioBlob.type.includes('mpeg') || audioBlob.type.includes('mp3')) format = 'mp3';
@@ -159,7 +149,6 @@ export class AudioRecorder {
             base64Length: result.audioBase64.length
           });
 
-          // Cleanup
           this.cleanup();
           
           resolve(result);
@@ -179,7 +168,6 @@ export class AudioRecorder {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          // Remove the data:audio/webm;base64, prefix
           const base64 = reader.result.split(',')[1];
           resolve(base64);
         } else {
@@ -205,7 +193,6 @@ export class AudioRecorder {
     this.isRecording = false;
   }
 
-  // Public getters
   getIsRecording(): boolean {
     return this.isRecording;
   }
@@ -214,7 +201,6 @@ export class AudioRecorder {
     return this.isRecording ? (Date.now() - this.startTime) / 1000 : 0;
   }
 
-  // Static utility methods
   static async checkMicrophoneAccess(): Promise<boolean> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -227,9 +213,11 @@ export class AudioRecorder {
   }
 
   static isRecordingSupported(): boolean {
-    return !!(navigator.mediaDevices && 
-             navigator.mediaDevices.getUserMedia && 
-             window.MediaRecorder);
+    return !!(
+      navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === 'function' &&
+      window.MediaRecorder
+    );
   }
 
   static getSupportedMimeTypes(): string[] {
@@ -246,10 +234,8 @@ export class AudioRecorder {
   }
 }
 
-// Create singleton instance
 export const audioRecorder = new AudioRecorder();
 
-// Convenience functions
 export const startAudioRecording = () => audioRecorder.startRecording();
 export const stopAudioRecording = () => audioRecorder.stopRecording();
 export const isRecordingActive = () => audioRecorder.getIsRecording();

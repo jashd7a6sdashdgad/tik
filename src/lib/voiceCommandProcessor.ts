@@ -48,7 +48,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(go to|navigate to|open|show me) (dashboard|social media|email|calendar|expenses|photos|contacts|settings|diary|budget)/i,
         action: 'navigate',
-        handler: (_matches, _transcript) => {
+        handler: (matches, _transcript) => {
           const destination = matches[2].toLowerCase().replace(' ', '-');
           return {
             action: 'navigate',
@@ -66,7 +66,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(what|how|tell me|show me).*(status|today|schedule|tasks|emails|messages)/i,
         action: 'status_inquiry',
-        handler: (_matches, _transcript) => ({
+        handler: (_matches, transcript) => ({
           action: 'status_inquiry',
           response: this.getStatusResponse(transcript),
           confidence: 0.8,
@@ -80,7 +80,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(help|how do i|can you help|assist|guide me)/i,
         action: 'help',
-        handler: (_matches, _transcript) => ({
+        handler: (_matches, transcript) => ({
           action: 'help',
           response: this.getHelpResponse(transcript),
           confidence: 0.9,
@@ -209,7 +209,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(book|schedule|add|create|plan).*(gym|workout|exercise|fitness|yoga|run|training).*(every|daily|weekly).*(monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week)/i,
         action: 'schedule_recurring_activity',
-        handler: (_matches, _transcript) => {
+        handler: (_matches, transcript) => {
           return {
             action: 'schedule_recurring_activity',
             response: this.getRecurringScheduleResponse(transcript),
@@ -229,7 +229,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(book|schedule|add|create|plan).*(meeting|call|appointment|interview|presentation).*(every|daily|weekly).*(monday|tuesday|wednesday|thursday|friday|saturday|sunday|day|week)/i,
         action: 'schedule_recurring_meeting',
-        handler: (_matches, _transcript) => {
+        handler: (_matches, transcript) => {
           return {
             action: 'schedule_recurring_meeting',
             response: this.getRecurringScheduleResponse(transcript),
@@ -249,7 +249,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(book|schedule|add|create|plan).*(for|at).*(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week|this week)/i,
         action: 'schedule_event',
-        handler: (_matches, _transcript) => {
+        handler: (_matches, transcript) => {
           return {
             action: 'schedule_event',
             response: this.getScheduleResponse(transcript),
@@ -268,7 +268,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(check|find|look for|show me).*(conflicts|available|free time|schedule|calendar)/i,
         action: 'check_conflicts',
-        handler: (_matches, _transcript) => {
+        handler: (_matches, transcript) => {
           return {
             action: 'check_conflicts',
             response: 'Let me check your calendar for conflicts and available time slots.',
@@ -284,7 +284,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(prepare|get ready|setup).*(meeting|call|appointment|interview)/i,
         action: 'prepare_meeting',
-        handler: (_matches, _transcript) => {
+        handler: (_matches, transcript) => {
           return {
             action: 'prepare_meeting',
             response: 'I\'ll help you prepare for your upcoming meeting by gathering relevant emails and documents.',
@@ -301,7 +301,7 @@ export class VoiceCommandProcessor {
       {
         pattern: /^(.*)/i,
         action: 'general_conversation',
-        handler: (_matches, _transcript) => ({
+        handler: (_matches, transcript) => ({
           action: 'general_conversation',
           response: this.getConversationalResponse(transcript),
           confidence: 0.6,

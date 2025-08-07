@@ -295,7 +295,7 @@ export class NotificationIntegrations {
           isTimesensitive: true,
           traffic: {
             route: event.travelTime.route,
-            condition: 'normal',
+            condition: 'light', // Corrected from 'normal'
             delayMinutes: event.travelTime.estimatedDuration,
             suggestion: `Leave now to arrive on time`
           }

@@ -52,19 +52,23 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <MessageSquare className="h-8 w-8 text-blue-600 mr-3" />
-{t('chat')}
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {t('chatExperience')}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+                <MessageSquare className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('chat')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">
+                  {t('chatExperience')}
+                </p>
+              </div>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -73,7 +77,7 @@ export default function ChatPage() {
               }`}>
                 {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
                 <span className="text-sm font-medium">
-{isConnected ? t('connected') : t('disconnected')}
+                  {isConnected ? t('connected') : t('disconnected')}
                 </span>
               </div>
               
@@ -381,18 +385,20 @@ export default function ChatPage() {
           </CardHeader>
           <CardContent>
             <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-x-auto">
-{`{
+              <code>
+                {`{
   "type": "voice_message",
   "action": "send",
   "audioBase64": "<base64-encoded-audio-data>",
-  "fileName": "voiceMessage_1234567890.webm",
-  "mimeType": "audio/webm;codecs=opus",
+  "fileName": "voiceMessage.webm",
+  "mimeType": "audio/webm",
   "duration": 15,
   "size": 45678,
   "timestamp": "2024-01-15T10:30:00.000Z",
   "userId": "user-123",
   "userName": "John Doe"
 }`}
+              </code>
             </pre>
           </CardContent>
         </Card>

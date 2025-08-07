@@ -35,12 +35,23 @@ export default function EmailSummaryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                <Mail className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  Smart Summary Email
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">Automated daily or weekly email reports with your unread messages, expenses, weather, and tasks</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -50,15 +61,6 @@ export default function EmailSummaryPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Back to Dashboard
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-                  <Mail className="h-6 w-6" />
-                  Smart Summary Email
-                </h1>
-                <p className="text-black">Automated daily or weekly email reports with your unread messages, expenses, weather, and tasks</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
               <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 {loading ? 'Refreshing...' : 'Refresh'}
@@ -66,9 +68,6 @@ export default function EmailSummaryPage() {
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Feature Introduction */}
         <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
           <div className="flex items-start gap-4">
@@ -108,7 +107,7 @@ export default function EmailSummaryPage() {
 
         {/* Main Dashboard */}
         <SmartSummaryEmailDashboard onRefresh={handleRefresh} />
-      </main>
+      </div>
     </div>
   );
 }

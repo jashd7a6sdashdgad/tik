@@ -1,4 +1,4 @@
-'use client';
+// Avatar Reaction System for Dynamic User Interface Feedback
 
 export interface AvatarEmotionState {
   id: string;

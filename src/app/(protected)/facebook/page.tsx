@@ -258,32 +258,38 @@ export default function FacebookPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-black flex items-center">
-              <Facebook className="h-8 w-8 mr-3 text-blue-600" />
-              {t('facebookTitle')}
-            </h1>
-            <p className="text-black mt-2">{t('profileDescription')}</p>
-          </div>
-          
-          <div className="flex space-x-2">
-            <Button onClick={connectFacebook} disabled={isLoading}>
-              <Facebook className="h-4 w-4 mr-2" />
-              {isLoading ? t('loading') : isConnected ? t('refresh') : t('facebookTitle')}
-            </Button>
-            <Button onClick={validateToken} disabled={isLoading} variant="outline">
-              🔍 Validate Token
-            </Button>
-            <Button onClick={testFacebookToken} disabled={isLoading} variant="outline">
-              🚀 Test Token
-            </Button>
-            <Button onClick={debugFacebookAPI} disabled={isLoading} variant="outline">
-              🔧 Debug API
-            </Button>
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                <Facebook className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('facebookTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('profileDescription')}</p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button onClick={connectFacebook} disabled={isLoading}>
+                <Facebook className="h-4 w-4 mr-2" />
+                {isLoading ? t('loading') : isConnected ? t('refresh') : t('facebookTitle')}
+              </Button>
+              <Button onClick={validateToken} disabled={isLoading} variant="outline">
+                🔍 Validate Token
+              </Button>
+              <Button onClick={testFacebookToken} disabled={isLoading} variant="outline">
+                🚀 Test Token
+              </Button>
+              <Button onClick={debugFacebookAPI} disabled={isLoading} variant="outline">
+                🔧 Debug API
+              </Button>
+            </div>
           </div>
         </div>
 

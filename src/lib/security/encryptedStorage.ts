@@ -84,8 +84,8 @@ class EncryptedStorage {
 
       const encryptedData: EncryptedData = {
         data: this.arrayBufferToBase64(encrypted),
-        iv: this.arrayBufferToBase64(iv),
-        salt: this.arrayBufferToBase64(salt),
+        iv: this.arrayBufferToBase64(iv.buffer as ArrayBuffer),
+        salt: this.arrayBufferToBase64(salt.buffer as ArrayBuffer),
         timestamp: Date.now()
       };
 

@@ -30,6 +30,8 @@ export class NarratorPersonality {
       emotionalTone: 'warm'
     };
 
+    // Corrected the type error by initializing the array
+    this.contextualResponses = [];
     this.initializeContextualResponses();
     this.loadUserPreferences();
   }

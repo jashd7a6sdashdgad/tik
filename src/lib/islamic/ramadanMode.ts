@@ -1,7 +1,8 @@
-'use client';
+// Ramadan Mode with Enhanced Islamic Features and Fasting Support
 
 import { prayerTimesService } from './prayerTimes';
 
+// Interfaces for data structures
 export interface RamadanSettings {
   enabled: boolean;
   autoDetect: boolean; // Auto-enable during Ramadan month
@@ -90,6 +91,15 @@ export interface SuhoorIftarSuggestion {
   culturalOrigin?: string;
 }
 
+// Interface for the notification objects, to fix the type error
+export interface RamadanNotification {
+  type: 'suhoor' | 'iftar' | 'prayer' | 'spiritual' | 'health';
+  title: string;
+  message: string;
+  time: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
 class RamadanModeService {
   private settings: RamadanSettings;
   private fastingDays: FastingDay[] = [];
@@ -99,7 +109,7 @@ class RamadanModeService {
     this.currentRamadanYear = this.getCurrentHijriYear();
     this.settings = this.loadSettings();
     this.loadFastingData();
-    
+
     if (this.settings.autoDetect) {
       this.checkRamadanPeriod();
     }
@@ -109,9 +119,9 @@ class RamadanModeService {
   async checkRamadanPeriod(): Promise<boolean> {
     const ramadanDates = await this.getRamadanDates();
     const today = new Date();
-    
+
     const isRamadan = today >= ramadanDates.start && today <= ramadanDates.end;
-    
+
     if (isRamadan && !this.settings.enabled) {
       // Auto-enable Ramadan mode
       this.settings.enabled = true;
@@ -121,7 +131,7 @@ class RamadanModeService {
       this.settings.enabled = false;
       this.saveSettings();
     }
-    
+
     return isRamadan;
   }
 
@@ -131,16 +141,16 @@ class RamadanModeService {
       // Use Islamic calendar API or calculation
       const response = await fetch(`https://api.aladhan.com/v1/gToHCalendar/${new Date().getMonth() + 1}/${new Date().getFullYear()}`);
       const data = await response.json();
-      
+
       // This is a simplified approach - in reality, you'd need a proper Hijri calendar
       const currentYear = new Date().getFullYear();
       const ramadanStart = new Date(currentYear, 2, 23); // Approximate - varies each year
       const ramadanEnd = new Date(currentYear, 3, 21); // Approximate - varies each year
-      
+
       return { start: ramadanStart, end: ramadanEnd };
     } catch (error) {
       console.warn('Failed to fetch Ramadan dates, using defaults:', error);
-      
+
       // Fallback to estimated dates
       const currentYear = new Date().getFullYear();
       return {
@@ -154,18 +164,18 @@ class RamadanModeService {
   async initializeRamadanCalendar(): Promise<FastingDay[]> {
     const ramadanDates = await this.getRamadanDates();
     const fastingDays: FastingDay[] = [];
-    
+
     const current = new Date(ramadanDates.start);
     let dayNumber = 1;
-    
+
     while (current <= ramadanDates.end && dayNumber <= 30) {
       const prayerTimes = await prayerTimesService.getPrayerTimes(current);
       const fajrPrayer = prayerTimes.prayers.find(p => p.name === 'fajr');
       const maghribPrayer = prayerTimes.prayers.find(p => p.name === 'maghrib');
-      
+
       if (fajrPrayer && maghribPrayer) {
         const fastingHours = this.calculateFastingHours(fajrPrayer.time, maghribPrayer.time);
-        
+
         fastingDays.push({
           date: current.toISOString().split('T')[0],
           day: dayNumber,
@@ -175,11 +185,11 @@ class RamadanModeService {
           isToday: this.isToday(current)
         });
       }
-      
+
       current.setDate(current.getDate() + 1);
       dayNumber++;
     }
-    
+
     this.fastingDays = fastingDays;
     this.saveFastingData();
     return fastingDays;
@@ -214,7 +224,7 @@ class RamadanModeService {
     const totalCharity = completedDays.reduce((sum, day) => sum + (day.charityGiven || 0), 0);
     const totalQuranPages = completedDays.reduce((sum, day) => sum + (day.quranPages || 0), 0);
     const averageFastingHours = this.fastingDays.reduce((sum, day) => sum + day.fastingHours, 0) / this.fastingDays.length;
-    
+
     return {
       daysCompleted: completedDays.length,
       totalDays: this.fastingDays.length,
@@ -307,70 +317,64 @@ class RamadanModeService {
   }
 
   // Get smart notifications based on Ramadan mode
-  getSmartNotifications(): Array<{
-    type: 'suhoor' | 'iftar' | 'prayer' | 'spiritual' | 'health';
-    title: string;
-    message: string;
-    time: string;
-    priority: 'high' | 'medium' | 'low';
-  }> {
+  getSmartNotifications(): RamadanNotification[] {
     if (!this.settings.enabled) return [];
 
-    const notifications = [];
+    const notifications: RamadanNotification[] = [];
     const today = this.getTodaysFasting();
-    
+
     if (today) {
       // Suhoor reminder
       if (this.settings.fastingReminders.enabled) {
         const suhoorReminderTime = this.subtractMinutes(today.suhoorTime, this.settings.fastingReminders.suhoorReminder);
         notifications.push({
-          type: 'suhoor' as const,
+          type: 'suhoor',
           title: 'Suhoor Time Approaching',
           message: `Suhoor ends at ${today.suhoorTime}. Prepare your pre-dawn meal.`,
           time: suhoorReminderTime,
-          priority: 'high' as const
+          priority: 'high'
         });
 
         // Iftar reminder
         const iftarReminderTime = this.subtractMinutes(today.iftarTime, this.settings.fastingReminders.iftarReminder);
         notifications.push({
-          type: 'iftar' as const,
+          type: 'iftar',
           title: 'Iftar Time Approaching',
           message: `Break your fast at ${today.iftarTime}. ${today.fastingHours} hours of fasting completed!`,
           time: iftarReminderTime,
-          priority: 'high' as const
+          priority: 'high'
         });
       }
 
       // Spiritual reminders
       if (this.settings.notifications.specialReminders.quranReading) {
         notifications.push({
-          type: 'spiritual' as const,
+          type: 'spiritual',
           title: 'Quran Reading Time',
           message: `Goal: ${this.settings.spiritual.quranReadingGoal} pages today`,
           time: '20:30', // After Isha
-          priority: 'medium' as const
+          priority: 'medium'
         });
       }
 
       if (this.settings.notifications.specialReminders.tahajjud) {
         notifications.push({
-          type: 'prayer' as const,
+          type: 'prayer',
           title: 'Tahajjud Prayer',
           message: 'Time for the blessed night prayer',
           time: '02:00', // Late night
-          priority: 'medium' as const
+          priority: 'medium'
         });
       }
 
       // Health reminders
       if (this.settings.wellness.hydrationReminders) {
         notifications.push({
-          type: 'health' as const,
+          type: 'health',
           title: 'Hydration Reminder',
           message: 'Drink water slowly after breaking your fast',
           time: this.addMinutes(today.iftarTime, 30),
-          priority: 'medium' as const
+          priority: 'medium'
         });
       }
     }
@@ -394,8 +398,9 @@ class RamadanModeService {
       return { recommended: true };
     }
 
-    const warnings = [];
-    const alternatives = [];
+    // Explicitly type the arrays to resolve the type error
+    const warnings: string[] = [];
+    const alternatives: Array<{ startTime: Date; reason: string }> = [];
     const today = this.getTodaysFasting();
 
     if (today) {
@@ -407,7 +412,7 @@ class RamadanModeService {
       // Check if meeting conflicts with iftar
       if (startTime <= iftarTime && meetingEnd >= iftarTime) {
         warnings.push('Meeting conflicts with iftar time');
-        
+
         // Suggest before iftar
         const beforeIftar = new Date(iftarTime.getTime() - (duration + 30) * 60000);
         alternatives.push({
@@ -472,15 +477,15 @@ class RamadanModeService {
   private calculateFastingHours(suhoorTime: string, iftarTime: string): number {
     const [sHours, sMinutes] = suhoorTime.split(':').map(Number);
     const [iHours, iMinutes] = iftarTime.split(':').map(Number);
-    
+
     const suhoorMinutes = sHours * 60 + sMinutes;
     const iftarMinutes = iHours * 60 + iMinutes;
-    
+
     let diffMinutes = iftarMinutes - suhoorMinutes;
     if (diffMinutes < 0) {
       diffMinutes += 24 * 60; // Next day
     }
-    
+
     return Math.round(diffMinutes / 60 * 10) / 10; // Round to 1 decimal
   }
 
@@ -506,26 +511,26 @@ class RamadanModeService {
   private calculateCurrentStreak(): number {
     let streak = 0;
     const today = new Date();
-    
+
     // Count backwards from today
     for (let i = this.fastingDays.length - 1; i >= 0; i--) {
       const day = this.fastingDays[i];
       const dayDate = new Date(day.date);
-      
+
       if (dayDate <= today && day.completed) {
         streak++;
       } else if (dayDate <= today) {
         break;
       }
     }
-    
+
     return streak;
   }
 
   private calculateLongestStreak(): number {
     let maxStreak = 0;
     let currentStreak = 0;
-    
+
     this.fastingDays.forEach(day => {
       if (day.completed) {
         currentStreak++;
@@ -534,7 +539,7 @@ class RamadanModeService {
         currentStreak = 0;
       }
     });
-    
+
     return maxStreak;
   }
 
@@ -546,14 +551,16 @@ class RamadanModeService {
 
   private loadSettings(): RamadanSettings {
     try {
-      const stored = localStorage.getItem('ramadanSettings');
-      if (stored) {
-        return { ...this.getDefaultSettings(), ...JSON.parse(stored) };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem('ramadanSettings');
+        if (stored) {
+          return { ...this.getDefaultSettings(), ...JSON.parse(stored) };
+        }
       }
     } catch (error) {
       console.warn('Failed to load Ramadan settings:', error);
     }
-    
+
     return this.getDefaultSettings();
   }
 
@@ -604,7 +611,9 @@ class RamadanModeService {
 
   private saveSettings(): void {
     try {
-      localStorage.setItem('ramadanSettings', JSON.stringify(this.settings));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('ramadanSettings', JSON.stringify(this.settings));
+      }
     } catch (error) {
       console.warn('Failed to save Ramadan settings:', error);
     }
@@ -612,9 +621,11 @@ class RamadanModeService {
 
   private loadFastingData(): void {
     try {
-      const stored = localStorage.getItem(`ramadanFasting_${this.currentRamadanYear}`);
-      if (stored) {
-        this.fastingDays = JSON.parse(stored);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem(`ramadanFasting_${this.currentRamadanYear}`);
+        if (stored) {
+          this.fastingDays = JSON.parse(stored);
+        }
       }
     } catch (error) {
       console.warn('Failed to load fasting data:', error);
@@ -623,7 +634,9 @@ class RamadanModeService {
 
   private saveFastingData(): void {
     try {
-      localStorage.setItem(`ramadanFasting_${this.currentRamadanYear}`, JSON.stringify(this.fastingDays));
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(`ramadanFasting_${this.currentRamadanYear}`, JSON.stringify(this.fastingDays));
+      }
     } catch (error) {
       console.warn('Failed to save fasting data:', error);
     }

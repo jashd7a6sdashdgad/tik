@@ -277,7 +277,10 @@ export class GmailApiService {
     const emailPromises = messageIds.map(id => this.getEmail(id));
     const emails = await Promise.all(emailPromises);
     
-    return this.intelligence.batchClassifyEmails(emails);
+    // The getEmail method already returns a ProcessedEmail object that has been processed by AI.
+    // The previous code had a type error because it was trying to re-process an already processed
+    // object. This simplified version correctly returns the processed emails.
+    return emails;
   }
 
   // Convert Gmail message format to our EmailMessage format

@@ -1,11 +1,13 @@
 // Voice Conversation Manager - Integrates Speech Recognition and TTS
 
-// FIX: Remove unused VoiceRecognition import
-import { voiceRecognition } from './voiceRecognition';
+import { VoiceRecognition, VoiceCommand } from './voiceRecognition';
 import { voiceCommandProcessor, VoiceCommandResult } from './voiceCommandProcessor';
 import { voiceNarrator, narratorSpeak } from './voiceNarrator';
 import { n8nVoiceAssistant, N8NVoiceResponse } from './n8nVoiceAssistant';
 import { AudioRecorder, AudioRecordingResult } from './audioRecorder';
+
+// Create singleton instance
+const voiceRecognition = new VoiceRecognition();
 
 export interface ConversationState {
   isActive: boolean;
@@ -14,6 +16,7 @@ export interface ConversationState {
   lastCommand: string;
   lastResponse: string;
   conversationHistory: ConversationEntry[];
+  awaitingResponse: boolean;
 }
 
 export interface ConversationEntry {
@@ -47,7 +50,8 @@ export class VoiceConversation {
       isSpeaking: false,
       lastCommand: '',
       lastResponse: '',
-      conversationHistory: []
+      conversationHistory: [],
+      awaitingResponse: false
     };
 
     this.initialize();
@@ -362,7 +366,7 @@ export class VoiceConversation {
   }
 
   private handleError(message: string): void {
-    narratorSpeak(message, 'error', 'high');
+    narratorSpeak(message, 'system', 'high');
     this.updateState({ awaitingResponse: false });
   }
 
@@ -509,7 +513,7 @@ export class VoiceConversation {
 
   // Public methods
   startConversation(): boolean {
-    if (!voiceRecognition?.isRecognitionSupported()) {
+    if (!voiceRecognition?.isRecognitionSupported) {
       console.error('Voice recognition not supported');
       return false;
     }

@@ -254,7 +254,7 @@ export class SmartNotificationEngine {
     }
 
     // Check quiet hours
-    if (this.isQuietHours(now) && notification.priority !== 'critical') {
+    if (this.isQuietHours(now) && (notification.priority === 'medium' || notification.priority === 'low')) {
       const quietEnd = this.getQuietHoursEnd(now);
       return quietEnd;
     }
@@ -380,6 +380,7 @@ export class SmartNotificationEngine {
             source: 'traffic_service',
             category: 'travel',
             urgency: 8,
+            isTimesensitive: true,
             isTimeAttribute: true,
             traffic: trafficCondition
           },
@@ -415,6 +416,7 @@ export class SmartNotificationEngine {
           source: 'weather_service',
           category: 'safety',
           urgency: weather.severity === 'severe' ? 9 : 6,
+          isTimesensitive: true,
           isTimeAttribute: true,
           weather
         }
@@ -440,6 +442,7 @@ export class SmartNotificationEngine {
           source: 'calendar',
           category: 'meeting_prep',
           urgency: 7,
+          isTimesensitive: true,
           isTimeAttribute: true,
           relatedEvents: [nextMeeting.id]
         },
@@ -512,7 +515,7 @@ export class SmartNotificationEngine {
     // This would integrate with the smart calendar
     try {
       // Mock implementation - would use smartCalendar.getEvents()
-      const events = []; // await smartCalendar.getEvents(from, new Date(from.getTime() + 24 * 60 * 60 * 1000));
+      const events: any[] = []; // await smartCalendar.getEvents(from, new Date(from.getTime() + 24 * 60 * 60 * 1000));
       return events.find(event => event.startTime > from) || null;
     } catch (error) {
       return null;

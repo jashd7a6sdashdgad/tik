@@ -1,4 +1,4 @@
-'use client';
+// Natural Language Processor for Intelligent Query Parsing
 
 import { SearchQuery } from './searchIndex';
 

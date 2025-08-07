@@ -1,4 +1,4 @@
-'use client';
+// Islamic Calendar System with Prayer Times and Religious Events
 
 export interface HijriDate {
   day: number;
@@ -33,7 +33,7 @@ export interface IslamicEvent {
   date: Date;
   hijriDate: HijriDate;
   type: 'holiday' | 'observance' | 'reminder';
-  category: 'worship' | 'charity' | 'celebration' | 'fasting' | 'pilgrimage';
+  category: 'worship' | 'charity' | 'celebration' | 'fasting' | 'pilgrimage' | 'remembrance';
   description: string;
   reminder?: {
     enabled: boolean;
@@ -169,7 +169,12 @@ class IslamicCalendarService {
     days?: number[];
   }> {
     const currentHijri = this.getTodaysHijriDate();
-    const observances = [];
+    const observances: Array<{
+      title: string;
+      description: string;
+      type: 'fasting' | 'worship' | 'charity' | 'remembrance';
+      days?: number[];
+    }> = [];
 
     switch (currentHijri.month) {
       case 1: // Muharram
@@ -321,7 +326,12 @@ class IslamicCalendarService {
     amount?: number;
   }> {
     const currentHijri = this.getTodaysHijriDate();
-    const reminders = [];
+    const reminders: Array<{
+      type: string;
+      description: string;
+      dueDate?: Date;
+      amount?: number;
+    }> = [];
 
     // Zakat al-Fitr reminder during Ramadan
     if (currentHijri.month === 9) {
@@ -530,3 +540,13 @@ class IslamicCalendarService {
 }
 
 export const islamicCalendarService = new IslamicCalendarService();
+
+export function getIslamicCalendarService(): IslamicCalendarService {
+  return islamicCalendarService;
+}
+
+// Helper functions for common operations
+export const IslamicHelpers = {
+  // Check if two dates are the same day
+  isSameDay: (date1: Date, date2: Date) => date1.toDateString() === date2.toDateString(),
+};

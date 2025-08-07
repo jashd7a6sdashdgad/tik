@@ -1,5 +1,6 @@
-'use client';
+// Prayer Times Calculator with Location-Based Adhan Notifications
 
+// Interfaces for data structures
 export interface PrayerTime {
   name: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
   displayName: string;
@@ -67,6 +68,24 @@ export interface SmartSchedulingRule {
   priority: 'high' | 'medium' | 'low';
 }
 
+// New interfaces to fix type errors in the scheduling recommendations
+export interface TimeSlot {
+  startTime: string;
+  endTime: string;
+  hasConflict: boolean;
+  conflictingPrayers: PrayerTime[];
+}
+
+export interface AvoidTime {
+  startTime: string;
+  endTime: string;
+  reason: string;
+}
+
+export interface BestTime extends AvoidTime {
+  confidence: number;
+}
+
 class PrayerTimesService {
   private prayerSettings: PrayerSettings;
   private schedulingRules: SmartSchedulingRule[] = [];
@@ -75,7 +94,7 @@ class PrayerTimesService {
   constructor() {
     this.prayerSettings = this.loadSettings();
     this.initializeDefaultRules();
-    
+
     if (this.prayerSettings.location.useAutoLocation) {
       this.updateLocation();
     }
@@ -85,16 +104,16 @@ class PrayerTimesService {
   async getPrayerTimes(date?: Date): Promise<PrayerTimesData> {
     const targetDate = date || new Date();
     const location = await this.getLocation();
-    
+
     try {
       // Use Aladhan API for accurate prayer times
       const dateString = targetDate.toISOString().split('T')[0];
       const response = await fetch(
         `https://api.aladhan.com/v1/timings/${dateString}?latitude=${location.latitude}&longitude=${location.longitude}&method=${this.getCalculationMethodCode()}&madhab=${this.prayerSettings.madhab === 'Hanafi' ? '1' : '0'}`
       );
-      
+
       const data = await response.json();
-      
+
       if (data.code === 200) {
         return this.formatPrayerTimesResponse(data.data, location);
       }
@@ -110,7 +129,7 @@ class PrayerTimesService {
   async getNextPrayer(): Promise<PrayerTime | null> {
     const prayerTimes = await this.getPrayerTimes();
     const now = new Date();
-    
+
     const nextPrayer = prayerTimes.prayers.find(prayer => {
       const prayerTime = new Date();
       const [hours, minutes] = prayer.time.split(':').map(Number);
@@ -153,8 +172,8 @@ class PrayerTimesService {
       const bufferStart = new Date(prayerTime.getTime() - (this.prayerSettings.notifications.reminderMinutes[0] || 15) * 60000);
       const bufferEnd = new Date(prayerTime.getTime() + 30 * 60000); // 30 min for prayer
 
-      if ((bufferStart >= startTime && bufferStart <= endTime) || 
-          (bufferEnd >= startTime && bufferEnd <= endTime)) {
+      if ((bufferStart >= startTime && bufferStart <= endTime) ||
+        (bufferEnd >= startTime && bufferEnd <= endTime)) {
         if (!conflictingPrayers.includes(prayer)) {
           conflictingPrayers.push(prayer);
         }
@@ -190,22 +209,13 @@ class PrayerTimesService {
     preferredTimes?: string[], // array of HH:MM times
     date?: Date
   ): Promise<{
-    bestTimes: Array<{
-      startTime: string;
-      endTime: string;
-      reason: string;
-      confidence: number;
-    }>;
-    avoidTimes: Array<{
-      startTime: string;
-      endTime: string;
-      reason: string;
-    }>;
+    bestTimes: BestTime[];
+    avoidTimes: AvoidTime[];
   }> {
     const targetDate = date || new Date();
     const prayerTimes = await this.getPrayerTimes(targetDate);
-    const bestTimes = [];
-    const avoidTimes = [];
+    const bestTimes: BestTime[] = [];
+    const avoidTimes: AvoidTime[] = [];
 
     // Generate time slots throughout the day
     const dayStart = new Date(targetDate);
@@ -214,15 +224,14 @@ class PrayerTimesService {
     const dayEnd = new Date(targetDate);
     dayEnd.setHours(22, 0, 0, 0); // End at 10 PM
 
-    const timeSlots = [];
     const current = new Date(dayStart);
 
     while (current <= dayEnd) {
       const endTime = new Date(current.getTime() + duration * 60000);
-      
+
       const conflict = await this.checkPrayerConflict(current, endTime);
-      
-      const timeSlot = {
+
+      const timeSlot: TimeSlot = {
         startTime: current.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         endTime: endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hasConflict: conflict.hasConflict,
@@ -238,9 +247,9 @@ class PrayerTimesService {
       } else {
         // Calculate confidence based on various factors
         let confidence = 80;
-        
+
         // Higher confidence for preferred times
-        if (preferredTimes && preferredTimes.some(pref => 
+        if (preferredTimes && preferredTimes.some(pref =>
           Math.abs(this.timeToMinutes(pref) - this.timeToMinutes(timeSlot.startTime)) <= 30
         )) {
           confidence += 15;
@@ -292,22 +301,22 @@ class PrayerTimesService {
   // Get Qibla direction
   async getQiblaDirection(): Promise<number> {
     const location = await this.getLocation();
-    
+
     // Kaaba coordinates
     const kaabaLat = 21.4225;
     const kaabaLng = 39.8262;
-    
+
     // Calculate bearing to Kaaba
     const lat1 = location.latitude * Math.PI / 180;
     const lat2 = kaabaLat * Math.PI / 180;
     const deltaLng = (kaabaLng - location.longitude) * Math.PI / 180;
-    
+
     const x = Math.sin(deltaLng) * Math.cos(lat2);
     const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-    
+
     let bearing = Math.atan2(x, y) * 180 / Math.PI;
     bearing = (bearing + 360) % 360;
-    
+
     return bearing;
   }
 
@@ -327,7 +336,7 @@ class PrayerTimesService {
       ...rule,
       id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     };
-    
+
     this.schedulingRules.push(newRule);
     this.saveSchedulingRules();
     return newRule.id;
@@ -367,7 +376,7 @@ class PrayerTimesService {
   }
 
   private updateLocation(): void {
-    if (navigator.geolocation) {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           this.currentLocation = position;
@@ -479,12 +488,12 @@ class PrayerTimesService {
   private calculateTimeRemaining(timestamp: number): string {
     const now = Date.now();
     const diff = timestamp - now;
-    
+
     if (diff <= 0) return '0m';
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -540,14 +549,16 @@ class PrayerTimesService {
 
   private loadSettings(): PrayerSettings {
     try {
-      const stored = localStorage.getItem('prayerSettings');
-      if (stored) {
-        return { ...this.getDefaultSettings(), ...JSON.parse(stored) };
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem('prayerSettings');
+        if (stored) {
+          return { ...this.getDefaultSettings(), ...JSON.parse(stored) };
+        }
       }
     } catch (error) {
       console.warn('Failed to load prayer settings:', error);
     }
-    
+
     return this.getDefaultSettings();
   }
 
@@ -576,7 +587,9 @@ class PrayerTimesService {
 
   private saveSettings(): void {
     try {
-      localStorage.setItem('prayerSettings', JSON.stringify(this.prayerSettings));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('prayerSettings', JSON.stringify(this.prayerSettings));
+      }
     } catch (error) {
       console.warn('Failed to save prayer settings:', error);
     }
@@ -584,7 +597,9 @@ class PrayerTimesService {
 
   private saveSchedulingRules(): void {
     try {
-      localStorage.setItem('prayerSchedulingRules', JSON.stringify(this.schedulingRules));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('prayerSchedulingRules', JSON.stringify(this.schedulingRules));
+      }
     } catch (error) {
       console.warn('Failed to save scheduling rules:', error);
     }

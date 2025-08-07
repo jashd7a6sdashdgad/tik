@@ -224,33 +224,42 @@ export default function TrackingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-black">{t('trackingTitle')}</h1>
-            <p className="text-black mt-2">{t('analyticsTitle')}</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-black"
-            >
-              <option value="week">{t('overview')}</option>
-              <option value="month">{t('overview')}</option>
-              <option value="year">{t('overview')}</option>
-            </select>
-            <Button onClick={fetchAnalytics} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {t('refresh')}
-            </Button>
-            <Button onClick={exportData} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              {t('export')}
-            </Button>
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                <BarChart3 className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('trackingTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('analyticsTitle')}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-black"
+              >
+                <option value="week">{t('overview')}</option>
+                <option value="month">{t('overview')}</option>
+                <option value="year">{t('overview')}</option>
+              </select>
+              <Button onClick={fetchAnalytics} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                {t('refresh')}
+              </Button>
+              <Button onClick={exportData} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                {t('export')}
+              </Button>
+            </div>
           </div>
         </div>
 

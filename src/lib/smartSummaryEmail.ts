@@ -1,4 +1,4 @@
-'use client';
+// Smart Email Summary System with AI-powered analysis
 
 export interface EmailSummaryData {
   user: {

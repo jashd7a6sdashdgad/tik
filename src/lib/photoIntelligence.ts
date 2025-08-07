@@ -933,124 +933,67 @@ export class PhotoIntelligence {
     
     // Time similarity (taken within minutes)
     const timeDiff = Math.abs(new Date(photo1.createdTime).getTime() - new Date(photo2.createdTime).getTime());
-    if (timeDiff < 300000) { // 5 minutes
-      similarity += 0.3;
-      factors += 0.3;
+    if (timeDiff < 60000) { // If taken within 1 minute
+      similarity += 1 * 0.2;
+      factors += 0.2;
+    } else if (timeDiff < 300000) { // If taken within 5 minutes
+      similarity += 0.8 * 0.2;
+      factors += 0.2;
     }
     
     // Tag similarity
-    if (photo1.aiTags && photo2.aiTags) {
-      const commonTags = photo1.aiTags.filter(tag => photo2.aiTags!.includes(tag));
+    if (photo1.aiTags?.length && photo2.aiTags?.length) {
+      const commonTags = photo1.aiTags.filter(tag => photo2.aiTags?.includes(tag)).length;
       const totalTags = new Set([...photo1.aiTags, ...photo2.aiTags]).size;
-      const tagSim = commonTags.length / totalTags;
+      const tagSim = totalTags > 0 ? commonTags / totalTags : 0;
       similarity += tagSim * 0.2;
       factors += 0.2;
     }
     
+    // Final score
     return factors > 0 ? similarity / factors : 0;
   }
 
   private stringSimilarity(str1: string, str2: string): number {
-    const longer = str1.length > str2.length ? str1 : str2;
-    const shorter = str1.length > str2.length ? str2 : str1;
-    
-    if (longer.length === 0) return 1.0;
-    
-    const editDistance = this.levenshteinDistance(longer, shorter);
-    return (longer.length - editDistance) / longer.length;
+    const distance = this.calculateLevenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
+    const maxLength = Math.max(str1.length, str2.length);
+    return maxLength > 0 ? 1 - (distance / maxLength) : 1;
   }
+  
+  private calculateLevenshteinDistance(str1: string, str2: string): number {
+    const matrix: number[][] = [];
 
-  private levenshteinDistance(str1: string, str2: string): number {
-    const matrix = [];
-    
+    // Correctly initialize the matrix with the proper type
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i];
     }
-    
     for (let j = 0; j <= str1.length; j++) {
       matrix[0][j] = j;
     }
-    
+
+    // Fill the rest of the matrix
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
-        if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
+        const cost = str1[j - 1] === str2[i - 1] ? 0 : 1;
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1,       // Deletion
+          matrix[i][j - 1] + 1,       // Insertion
+          matrix[i - 1][j - 1] + cost // Substitution
+        );
       }
     }
-    
+
     return matrix[str2.length][str1.length];
   }
 
   private selectBestPhoto(photos: PhotoMetadata[]): PhotoMetadata {
-    // Select photo with best quality
+    // Select the photo with the highest overall quality score
     return photos.reduce((best, current) => {
-      const bestQuality = best.quality?.overall || 0;
-      const currentQuality = current.quality?.overall || 0;
-      
-      if (currentQuality > bestQuality) return current;
-      if (currentQuality === bestQuality && (current.size || 0) > (best.size || 0)) return current;
-      
-      return best;
-    });
-  }
-
-  // Batch processing
-  async batchAnalyzePhotos(photos: Partial<PhotoMetadata>[]): Promise<PhotoMetadata[]> {
-    const results: PhotoMetadata[] = [];
-    
-    for (const photo of photos) {
-      try {
-        const analyzed = await this.analyzePhoto(photo.url || '', photo);
-        results.push(analyzed);
-      } catch (error) {
-        console.error(`Failed to analyze photo ${photo.id}:`, error);
-        // Add unprocessed photo with basic metadata
-        results.push(photo as PhotoMetadata);
+      if (!best.quality || !current.quality) {
+        // If quality data is missing, just return the current one.
+        return best;
       }
-    }
-    
-    return results;
-  }
-
-  // Export analytics
-  generatePhotoAnalytics(photos: PhotoMetadata[]) {
-    return {
-      totalPhotos: photos.length,
-      processedPhotos: photos.filter(p => p.processedAt).length,
-      totalTags: photos.reduce((sum, p) => sum + (p.aiTags?.length || 0), 0),
-      uniqueTags: new Set(photos.flatMap(p => p.aiTags || [])).size,
-      facesDetected: photos.reduce((sum, p) => sum + (p.faces?.length || 0), 0),
-      objectsDetected: photos.reduce((sum, p) => sum + (p.objects?.length || 0), 0),
-      averageQuality: photos.reduce((sum, p) => sum + (p.quality?.overall || 0), 0) / photos.length,
-      duplicateGroups: this.detectDuplicates(photos).length,
-      suggestedAlbums: this.createSmartAlbums(photos).length,
-      topTags: this.getTopTags(photos, 10),
-      locationCoverage: new Set(photos.map(p => p.location?.city).filter(Boolean)).size
-    };
-  }
-
-  private getTopTags(photos: PhotoMetadata[], limit: number): Array<{ tag: string; count: number }> {
-    const tagCounts = new Map<string, number>();
-    
-    photos.forEach(photo => {
-      photo.aiTags?.forEach(tag => {
-        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
-      });
-    });
-    
-    return Array.from(tagCounts.entries())
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, limit);
+      return current.quality.overall > best.quality.overall ? current : best;
+    }, photos[0]);
   }
 }
-
-// Create singleton instance
-export const photoIntelligence = new PhotoIntelligence();

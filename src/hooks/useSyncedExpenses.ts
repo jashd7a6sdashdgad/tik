@@ -22,6 +22,8 @@ export interface SyncedExpense extends OfflineCapableData {
   synced: boolean;
 }
 
+type NewExpenseData = Omit<SyncedExpense, 'id' | 'lastModified' | 'synced'>;
+
 export function useSyncedExpenses() {
   const { sync } = useSync();
   const { 
@@ -37,7 +39,6 @@ export function useSyncedExpenses() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load expenses (online + offline)
   const loadExpenses = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -46,7 +47,6 @@ export function useSyncedExpenses() {
       let allExpenses: SyncedExpense[] = [];
       
       if (isOnline) {
-        // Try to fetch from API first
         try {
           const response = await fetch('/api/sheets/expenses');
           const data = await response.json();
@@ -58,10 +58,7 @@ export function useSyncedExpenses() {
               synced: true
             }));
             
-            // Store in offline cache for later
-            await Promise.all(
-              apiExpenses.map(exp => storeOffline(exp))
-            );
+            await Promise.all(apiExpenses.map(exp => storeOffline(exp)));
             
             allExpenses = apiExpenses;
           }
@@ -70,18 +67,10 @@ export function useSyncedExpenses() {
         }
       }
       
-      // Always include offline data
       const offlineExpenses = await getAllOffline();
-      
-      // Merge online and offline data, preferring newer versions
       const mergedExpenses = new Map<string, SyncedExpense>();
       
-      // Add API expenses first
-      allExpenses.forEach(expense => {
-        mergedExpenses.set(expense.id, expense);
-      });
-      
-      // Add offline expenses, preferring local changes
+      allExpenses.forEach(expense => mergedExpenses.set(expense.id, expense));
       offlineExpenses.forEach(expense => {
         const existing = mergedExpenses.get(expense.id);
         if (!existing || expense.lastModified > existing.lastModified) {
@@ -94,16 +83,12 @@ export function useSyncedExpenses() {
       
       setExpenses(sortedExpenses);
       
-      // Sync pending changes if online
-      if (isOnline) {
-        await syncPending();
-      }
+      if (isOnline) await syncPending();
       
     } catch (error) {
       console.error('Error loading expenses:', error);
       setError('Failed to load expenses');
       
-      // Fallback to offline data only
       const offlineExpenses = await getAllOffline();
       setExpenses(offlineExpenses);
     } finally {
@@ -111,30 +96,26 @@ export function useSyncedExpenses() {
     }
   }, [isOnline, getAllOffline, storeOffline, syncPending]);
 
-  // Add new expense
-  const addExpense = useCallback(async (expenseData: Omit<SyncedExpense, 'id' | 'lastModified' | 'synced'>) => {
+  const addExpense = useCallback(async (expenseData: NewExpenseData) => {
     const newExpense: SyncedExpense = {
-      ...expenseData,
-      id: `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      from: expenseData.from || 'unknown',
+      date: expenseData.date || new Date().toISOString(),
+      creditAmount: expenseData.creditAmount || 0,
+      debitAmount: expenseData.debitAmount || 0,
+      category: expenseData.category || 'uncategorized',
+      description: expenseData.description || '',
+      availableBalance: expenseData.availableBalance,
+      receiptImage: expenseData.receiptImage,
+      id: `expense_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       lastModified: Date.now(),
       synced: false
     };
 
     try {
-      // Store offline immediately
       await storeOffline(newExpense);
-      
-      // Add to local state
       setExpenses(prev => [newExpense, ...prev]);
+      sync({ type: 'expense', action: 'create', data: newExpense });
       
-      // Sync to other devices
-      sync({
-        type: 'expense',
-        action: 'create',
-        data: newExpense
-      });
-      
-      // Try to sync to API if online
       if (isOnline) {
         try {
           const response = await fetch('/api/sheets/expenses', {
@@ -144,13 +125,9 @@ export function useSyncedExpenses() {
           });
           
           if (response.ok) {
-            // Mark as synced
             const syncedExpense = { ...newExpense, synced: true };
             await storeOffline(syncedExpense);
-            
-            setExpenses(prev => 
-              prev.map(exp => exp.id === newExpense.id ? syncedExpense : exp)
-            );
+            setExpenses(prev => prev.map(exp => exp.id === newExpense.id ? syncedExpense : exp));
           }
         } catch (apiError) {
           console.warn('API sync failed, will retry when online:', apiError);
@@ -164,12 +141,9 @@ export function useSyncedExpenses() {
     }
   }, [storeOffline, sync, isOnline]);
 
-  // Update expense
   const updateExpense = useCallback(async (id: string, updates: Partial<SyncedExpense>) => {
     const existingExpense = expenses.find(exp => exp.id === id);
-    if (!existingExpense) {
-      throw new Error('Expense not found');
-    }
+    if (!existingExpense) throw new Error('Expense not found');
 
     const updatedExpense: SyncedExpense = {
       ...existingExpense,
@@ -180,22 +154,10 @@ export function useSyncedExpenses() {
     };
 
     try {
-      // Store offline immediately
       await storeOffline(updatedExpense);
+      setExpenses(prev => prev.map(exp => exp.id === id ? updatedExpense : exp));
+      sync({ type: 'expense', action: 'update', data: updatedExpense });
       
-      // Update local state
-      setExpenses(prev => 
-        prev.map(exp => exp.id === id ? updatedExpense : exp)
-      );
-      
-      // Sync to other devices
-      sync({
-        type: 'expense',
-        action: 'update',
-        data: updatedExpense
-      });
-      
-      // Try to sync to API if online
       if (isOnline) {
         try {
           const response = await fetch('/api/sheets/expenses', {
@@ -205,13 +167,9 @@ export function useSyncedExpenses() {
           });
           
           if (response.ok) {
-            // Mark as synced
             const syncedExpense = { ...updatedExpense, synced: true };
             await storeOffline(syncedExpense);
-            
-            setExpenses(prev => 
-              prev.map(exp => exp.id === id ? syncedExpense : exp)
-            );
+            setExpenses(prev => prev.map(exp => exp.id === id ? syncedExpense : exp));
           }
         } catch (apiError) {
           console.warn('API sync failed, will retry when online:', apiError);
@@ -225,23 +183,12 @@ export function useSyncedExpenses() {
     }
   }, [expenses, storeOffline, sync, isOnline]);
 
-  // Delete expense
   const deleteExpense = useCallback(async (id: string) => {
     try {
-      // Remove from offline storage
       await removeOffline(id);
-      
-      // Remove from local state
       setExpenses(prev => prev.filter(exp => exp.id !== id));
+      sync({ type: 'expense', action: 'delete', data: { id } });
       
-      // Sync deletion to other devices
-      sync({
-        type: 'expense',
-        action: 'delete',
-        data: { id }
-      });
-      
-      // Try to delete from API if online
       if (isOnline) {
         try {
           await fetch('/api/sheets/expenses', {
@@ -259,18 +206,13 @@ export function useSyncedExpenses() {
     }
   }, [removeOffline, sync, isOnline]);
 
-  // Load expenses on mount and when online status changes
   useEffect(() => {
     loadExpenses();
   }, [loadExpenses]);
 
-  // Auto-sync when coming back online
   useEffect(() => {
     if (isOnline && syncStatus.pendingSync > 0) {
-      console.log('🔄 Auto-syncing pending changes...');
-      syncPending().then(() => {
-        loadExpenses(); // Reload to reflect synced changes
-      });
+      syncPending().then(() => loadExpenses());
     }
   }, [isOnline, syncStatus.pendingSync, syncPending, loadExpenses]);
 

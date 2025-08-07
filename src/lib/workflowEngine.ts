@@ -198,7 +198,8 @@ export class WorkflowEngine {
           this.updateActionStatus(execution, action.id, 'completed', undefined, new Date(), result);
           this.log(execution, 'info', `Action completed: ${action.name}`, result);
         } catch (error) {
-          this.updateActionStatus(execution, action.id, 'failed', undefined, new Date(), undefined, error.message);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.updateActionStatus(execution, action.id, 'failed', undefined, new Date(), undefined, errorMessage);
           this.log(execution, 'error', `Action failed: ${action.name}`, error);
           
           // Continue with other actions unless it's a critical failure
@@ -334,7 +335,8 @@ export class WorkflowEngine {
       const result = await response.json();
       return { status: response.status, data: result };
     } catch (error) {
-      throw new Error(`API call failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`API call failed: ${errorMessage}`);
     }
   }
 
@@ -809,7 +811,11 @@ export class WorkflowEngine {
 // Create singleton instance
 export const workflowEngine = new WorkflowEngine();
 
-// Auto-start the engine
+// Auto-start the engine in browser environment
 if (typeof window !== 'undefined') {
-  workflowEngine.start();
+  try {
+    workflowEngine.start();
+  } catch (error) {
+    console.warn('Failed to auto-start workflow engine:', error);
+  }
 }

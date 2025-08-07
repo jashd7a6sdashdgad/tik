@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 // import { useVoiceInput } from '@/hooks/useVoiceInput'; // Removed for stability
 import AddExpenseForm from '@/components/AddExpenseForm';
-import { expenseIntelligence, SmartExpense } from '@/lib/expenseIntelligence';
+import { ExpenseIntelligence, SmartExpense } from '@/lib/expenseIntelligence';
 import ExpenseInsightsDashboard from '@/components/ExpenseInsightsDashboard';
 import BudgetAdvisorDashboard from '@/components/BudgetAdvisorDashboard';
 
@@ -39,7 +39,6 @@ interface ExpenseAnalytics {
   categoryTotals: Record<string, number>;
   averageExpense: number;
 }
-
 
 export default function ExpensesPage() {
   const { language } = useSettings();
@@ -52,7 +51,6 @@ export default function ExpensesPage() {
   const [usingMockData, setUsingMockData] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
 
   // Form fields for voice input
   const [description, setDescription] = useState('');
@@ -99,6 +97,10 @@ export default function ExpensesPage() {
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
+
+    // FIX: Define the instance here so it's available in all code paths.
+    const expenseIntelligenceInstance = new ExpenseIntelligence();
+    
     try {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
@@ -112,8 +114,9 @@ export default function ExpensesPage() {
         const rawExpenses = data.data.expenses || [];
         setExpenses(rawExpenses);
         
-        // Apply AI intelligence to classify expenses
-        const enhancedExpenses = expenseIntelligence.batchClassifyExpenses(rawExpenses);
+        const enhancedExpenses = rawExpenses.map(expense => 
+          expenseIntelligenceInstance.classifyExpense(expense)
+        );
         setSmartExpenses(enhancedExpenses);
         
         setAnalytics(data.data.analytics || null);
@@ -156,8 +159,9 @@ export default function ExpensesPage() {
         
         setExpenses(mockExpenses);
         
-        // Apply AI intelligence to mock data too
-        const enhancedMockExpenses = expenseIntelligence.batchClassifyExpenses(mockExpenses);
+        const enhancedMockExpenses = mockExpenses.map(expense => 
+          expenseIntelligenceInstance.classifyExpense(expense)
+        );
         setSmartExpenses(enhancedMockExpenses);
         
         setAnalytics({
@@ -199,8 +203,9 @@ export default function ExpensesPage() {
       
       setExpenses(mockExpenses);
       
-      // Apply AI intelligence to fallback data
-      const enhancedFallbackExpenses = expenseIntelligence.batchClassifyExpenses(mockExpenses);
+      const enhancedFallbackExpenses = mockExpenses.map(expense => 
+        expenseIntelligenceInstance.classifyExpense(expense)
+      );
       setSmartExpenses(enhancedFallbackExpenses);
       
       setAnalytics({
@@ -302,14 +307,21 @@ export default function ExpensesPage() {
 
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">{t('expensesTitle')}</h1>
-              <p className="text-black">{t('profileDescription')}</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg">
+                <DollarSign className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('expensesTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('profileDescription')}</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <Button onClick={fetchExpenses} variant="outline" size="sm">
@@ -341,14 +353,14 @@ export default function ExpensesPage() {
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="space-y-8">
         {/* Budget Advisor Dashboard */}
         {showBudgetAdvisor && (
           <div className="mb-8">
+            {/* FIX: Pass the smartExpenses array to the BudgetAdvisorDashboard */}
             <BudgetAdvisorDashboard 
-              expenses={expenses} 
+              expenses={smartExpenses} 
               onRefresh={fetchExpenses}
             />
           </div>
@@ -357,6 +369,7 @@ export default function ExpensesPage() {
         {/* AI Insights Dashboard */}
         {showInsights && (
           <div className="mb-8">
+            {/* FIX: Pass the smartExpenses array to the ExpenseInsightsDashboard */}
             <ExpenseInsightsDashboard 
               expenses={smartExpenses} 
               onRefresh={fetchExpenses}
@@ -369,16 +382,16 @@ export default function ExpensesPage() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 0 11-2 0 1 1 0 012 0zm-1-8a1 0 00-1 1v3a1 0 002 0V6a1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-800">
                   <strong>{t('demoMode')}:</strong> Google Sheets API is not available. Showing sample data. 
                   <a href="https://console.developers.google.com/apis/api/sheets.googleapis.com/overview?project=573350886841" 
-                     target="_blank" 
-                     rel="noopener noreferrer" 
-                     className="underline ml-1">
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="underline ml-1">
                     {t('enableSheetsApi')}
                   </a>
                 </p>
@@ -387,13 +400,20 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* Voice Add Expense */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>{t('voiceInput')}</CardTitle>
-            <CardDescription>{t('voiceDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Modern Voice Add Expense Card */}
+        <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 mb-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl shadow-lg">
+              <Plus className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                Add Expense
+              </h2>
+              <p className="text-gray-600 font-medium">Quick expense tracking with smart categorization</p>
+            </div>
+          </div>
+          <div>
             <div className="flex items-center space-x-4">
               <Button
                 variant="outline"
@@ -408,8 +428,8 @@ export default function ExpensesPage() {
                 <p className="text-sm text-black italic">"{transcript}"</p>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
 
         {/* Analytics */}
@@ -520,7 +540,7 @@ export default function ExpensesPage() {
                 <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
                 <p className="text-black">{t('loading')}</p>
               </div>
-            ) : expenses.length === 0 ? (
+            ) : smartExpenses.length === 0 ? (
               <div className="text-center py-8">
                 <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-black">No expenses found</p>
@@ -540,15 +560,14 @@ export default function ExpensesPage() {
               <>
                 <div className="space-y-4">
                   {getPaginatedExpenses().map((expense) => {
-                    // Find corresponding smart expense data
-                    const smartExpense = smartExpenses.find(se => se.id === expense.id) || expense;
-                    const isSmartExpense = smartExpense !== expense;
+                    const smartExpense = smartExpenses.find(se => se.id === expense.id);
+                    const isSmartExpense = smartExpense !== undefined;
                     
                     return (
                       <div key={expense.id} className={`p-4 border rounded-lg transition-all hover:shadow-md ${
-                        smartExpense.budgetImpact === 'over_budget' ? 'border-red-200 bg-red-50' :
-                        smartExpense.budgetImpact === 'significant_expense' ? 'border-orange-200 bg-orange-50' :
-                        smartExpense.anomalyScore && smartExpense.anomalyScore > 0.7 ? 'border-purple-200 bg-purple-50' :
+                        smartExpense?.budgetStatus === 'over_budget' ? 'border-red-200 bg-red-50' :
+                        smartExpense?.budgetStatus === 'significant_expense' ? 'border-orange-200 bg-orange-50' :
+                        smartExpense?.anomalyScore && smartExpense.anomalyScore > 0.7 ? 'border-purple-200 bg-purple-50' :
                         'border-border bg-white'
                       }`}>
                         <div className="flex justify-between items-start">
@@ -556,13 +575,11 @@ export default function ExpensesPage() {
                             <div className="flex items-center space-x-2 mb-1 flex-wrap">
                               <span className="font-medium text-black">{expense.description}</span>
                               
-                              {/* Original category */}
                               <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                 {expense.category}
                               </span>
                               
-                              {/* AI-suggested category if different */}
-                              {isSmartExpense && smartExpense.autoCategory && smartExpense.autoCategory !== expense.category && (
+                              {isSmartExpense && smartExpense?.autoCategory && smartExpense.autoCategory !== expense.category && (
                                 <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full flex items-center gap-1">
                                   <Brain className="h-3 w-3" />
                                   AI: {smartExpense.autoCategory}
@@ -572,31 +589,28 @@ export default function ExpensesPage() {
                                 </span>
                               )}
                               
-                              {/* Budget impact indicator */}
-                              {smartExpense.budgetImpact === 'over_budget' && (
+                              {smartExpense?.budgetStatus === 'over_budget' && (
                                 <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full flex items-center gap-1">
                                   <AlertTriangle className="h-3 w-3" />
                                   Over Budget
                                 </span>
                               )}
                               
-                              {smartExpense.budgetImpact === 'significant_expense' && (
+                              {smartExpense?.budgetStatus === 'significant_expense' && (
                                 <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full flex items-center gap-1">
                                   <Eye className="h-3 w-3" />
                                   Large Expense
                                 </span>
                               )}
                               
-                              {/* Anomaly indicator */}
-                              {smartExpense.anomalyScore && smartExpense.anomalyScore > 0.7 && (
+                              {smartExpense?.anomalyScore && smartExpense.anomalyScore > 0.7 && (
                                 <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full flex items-center gap-1">
                                   <Zap className="h-3 w-3" />
                                   Unusual
                                 </span>
                               )}
                               
-                              {/* Recurring pattern */}
-                              {'recurringPattern' in smartExpense && smartExpense.recurringPattern && smartExpense.recurringPattern !== 'irregular' && (
+                              {'recurringPattern' in (smartExpense || {}) && smartExpense?.recurringPattern && smartExpense.recurringPattern !== 'irregular' && (
                                 <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                                   {smartExpense.recurringPattern}
                                 </span>
@@ -605,7 +619,7 @@ export default function ExpensesPage() {
                             
                             <div className="text-sm text-gray-600">
                               {expense.date && <span>{new Date(expense.date).toLocaleDateString()}</span>}
-                              {'merchant' in smartExpense && smartExpense.merchant && smartExpense.merchant !== expense.from && (
+                              {'merchant' in (smartExpense || {}) && smartExpense?.merchant && smartExpense.merchant !== expense.from && (
                                 <span className="ml-2">• Merchant: {smartExpense.merchant}</span>
                               )}
                               {expense.from && (
@@ -613,8 +627,7 @@ export default function ExpensesPage() {
                               )}
                             </div>
                             
-                            {/* AI-generated tags */}
-                            {'tags' in smartExpense && smartExpense.tags && smartExpense.tags.length > 0 && (
+                            {'tags' in (smartExpense || {}) && smartExpense?.tags && smartExpense.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {smartExpense.tags.slice(0, 3).map((tag, idx) => (
                                   <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
@@ -624,8 +637,7 @@ export default function ExpensesPage() {
                               </div>
                             )}
                             
-                            {/* AI suggestions */}
-                            {'suggestedActions' in smartExpense && smartExpense.suggestedActions && smartExpense.suggestedActions.length > 0 && (
+                            {'suggestedActions' in (smartExpense || {}) && smartExpense?.suggestedActions && smartExpense.suggestedActions.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {smartExpense.suggestedActions.slice(0, 2).map((action, idx) => (
                                   <span key={idx} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200">
@@ -723,6 +735,7 @@ export default function ExpensesPage() {
           </CardContent>
         </Card>
       </main>
+      </div>
     </div>
   );
 }

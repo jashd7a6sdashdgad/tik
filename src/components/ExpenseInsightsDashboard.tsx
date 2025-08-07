@@ -1,9 +1,11 @@
+// src/components/ExpenseInsightsDashboard.tsx
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { expenseIntelligence, SmartExpense, ExpenseInsight } from '@/lib/expenseIntelligence';
+import { ExpenseIntelligence, SmartExpense, ExpenseInsight } from '@/lib/expenseIntelligence';
 import { receiptProcessor, ReceiptData } from '@/lib/receiptProcessor';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
@@ -12,7 +14,6 @@ import {
   TrendingUp,
   TrendingDown,
   AlertTriangle,
-  CheckCircle,
   Lightbulb,
   PieChart,
   BarChart3,
@@ -25,8 +26,13 @@ import {
   Tag,
   Brain,
   Eye,
-  Wallet
 } from 'lucide-react';
+// Simple toast replacement
+const toast = {
+  info: (message: string, options?: { description?: string }) => console.log('ℹ️', message, options?.description),
+  success: (message: string) => console.log('✅', message),
+  error: (message: string) => console.log('❌', message)
+};
 
 interface ExpenseAnalytics {
   totalExpenses: number;
@@ -54,33 +60,40 @@ export default function ExpenseInsightsDashboard({ expenses, onRefresh }: Props)
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
 
+  // Use useMemo to create a singleton instance of ExpenseIntelligence.
+  const expenseIntelligenceInstance = useMemo(() => new ExpenseIntelligence(), []);
+
   useEffect(() => {
     if (expenses.length > 0) {
-      const smartExpenses = expenseIntelligence.batchClassifyExpenses(expenses as any);
-      const analyticsData = expenseIntelligence.exportExpenseAnalytics(smartExpenses);
+      // FIX: The correct instance method is 'getAnalyticsDashboardData'
+      const analyticsData = expenseIntelligenceInstance.getAnalyticsDashboardData(expenses);
       setAnalytics(analyticsData);
+    } else {
+      // Optionally, reset analytics when there are no expenses
+      setAnalytics(null);
     }
-  }, [expenses]);
+  }, [expenses, expenseIntelligenceInstance]);
 
   const handleReceiptUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     setIsProcessingReceipt(true);
+    toast.info('Processing receipts...', { description: 'This may take a moment.' });
     try {
       const fileArray = Array.from(files);
       const processedReceipts = await receiptProcessor.processMultipleReceipts(fileArray);
       setReceipts(prev => [...prev, ...processedReceipts]);
       
-      // Convert receipts to expenses and trigger refresh
       const newExpenses = processedReceipts.map(receipt => 
         receiptProcessor.exportReceiptToExpense(receipt)
       );
       
-      // Here you would typically save these to your backend
       console.log('New expenses from receipts:', newExpenses);
-      onRefresh();
+      toast.success('Receipts processed successfully!');
+      onRefresh(); // Trigger a refresh of the main expenses list
     } catch (error) {
       console.error('Error processing receipts:', error);
+      toast.error('An error occurred while processing receipts.');
     } finally {
       setIsProcessingReceipt(false);
     }
@@ -93,6 +106,8 @@ export default function ExpenseInsightsDashboard({ expenses, onRefresh }: Props)
       case 'saving_opportunity': return Lightbulb;
       case 'budget_alert': return Target;
       case 'recurring_payment': return Calendar;
+      case 'positive_trend': return TrendingUp;
+      case 'negative_trend': return TrendingDown;
       default: return Eye;
     }
   };

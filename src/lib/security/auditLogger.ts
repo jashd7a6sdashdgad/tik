@@ -289,7 +289,7 @@ class AuditLogger {
     }
     
     if (query.action) {
-      filteredLogs = filteredLogs.filter(log => log.action.includes(query.action));
+      filteredLogs = filteredLogs.filter(log => log.action.includes(query.action!));
     }
     
     if (query.resource) {

@@ -1,4 +1,4 @@
-'use client';
+// Smart Filter Engine for Intelligent Search and Content Filtering
 
 import { SearchDocument, SearchResult } from './searchIndex';
 

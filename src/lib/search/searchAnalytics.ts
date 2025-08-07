@@ -1,4 +1,4 @@
-'use client';
+// Search Analytics and User Behavior Tracking System
 
 import { SearchResult } from './searchIndex';
 
@@ -34,6 +34,14 @@ export interface QueryPerformance {
   clickThroughRate: number;
   refinementRate: number;
   satisfaction: number;
+}
+
+// Define a type for your recommendation objects
+interface Recommendation {
+  type: 'warning' | 'improvement' | 'info';
+  title: string;
+  description: string;
+  action: string;
 }
 
 class SearchAnalyticsEngine {
@@ -118,7 +126,7 @@ class SearchAnalyticsEngine {
           .reduce((sum, s) => sum + s.clickedResults.length, 0);
         
         const totalSearches = this.searches.filter(s => s.query === search.query).length;
-        performance.clickThroughRate = totalClicks / totalSearches;
+        performance.clickThroughRate = totalSearches > 0 ? totalClicks / totalSearches : 0;
       }
 
       this.saveToStorage();
@@ -139,7 +147,7 @@ class SearchAnalyticsEngine {
           .reduce((sum, s) => sum + s.refinements.length, 0);
         
         const totalSearches = this.searches.filter(s => s.query === search.query).length;
-        performance.refinementRate = totalRefinements / totalSearches;
+        performance.refinementRate = totalSearches > 0 ? totalRefinements / totalSearches : 0;
       }
 
       this.saveToStorage();
@@ -150,7 +158,7 @@ class SearchAnalyticsEngine {
   getAnalytics(): SearchAnalytics {
     const totalSearches = this.searches.length;
     const uniqueQueries = new Set(this.searches.map(s => s.query)).size;
-    const averageResults = this.searches.reduce((sum, s) => sum + s.results.length, 0) / totalSearches || 0;
+    const averageResults = totalSearches > 0 ? this.searches.reduce((sum, s) => sum + s.results.length, 0) / totalSearches : 0;
 
     // Top queries
     const queryCount = new Map<string, { count: number; lastUsed: number }>();
@@ -214,7 +222,7 @@ class SearchAnalyticsEngine {
 
     // User behavior analysis
     const queryLengths = this.searches.map(s => s.query.length);
-    const averageQueryLength = queryLengths.reduce((sum, len) => sum + len, 0) / queryLengths.length || 0;
+    const averageQueryLength = queryLengths.length > 0 ? queryLengths.reduce((sum, len) => sum + len, 0) / queryLengths.length : 0;
 
     // Most searched types
     const typeCount = new Map<string, number>();
@@ -334,60 +342,55 @@ class SearchAnalyticsEngine {
   }
 
   // Get search optimization recommendations
-  getOptimizationRecommendations(): Array<{
-    type: 'improvement' | 'warning' | 'info';
-    title: string;
-    description: string;
-    action?: string;
-  }> {
-    const recommendations = [];
+  getOptimizationRecommendations(): Recommendation[] {
+    const recommendations: Recommendation[] = [];
     const analytics = this.getAnalytics();
-
+  
     // Low click-through rates
     const lowCTRQueries = analytics.resultClickRates.filter(r => r.clickRate < 0.1);
     if (lowCTRQueries.length > 0) {
       recommendations.push({
-        type: 'warning' as const,
+        type: 'warning',
         title: 'Low Click-Through Rates',
         description: `${lowCTRQueries.length} queries have very low click rates, suggesting poor result relevance.`,
         action: 'Review search algorithm and result ranking'
       });
     }
-
+  
     // High refinement rates
     const highRefinementQueries = Array.from(this.queryPerformance.values())
       .filter(p => p.refinementRate > 0.5);
-    
+  
     if (highRefinementQueries.length > 0) {
       recommendations.push({
-        type: 'improvement' as const,
+        type: 'improvement',
         title: 'High Query Refinement',
         description: `${highRefinementQueries.length} queries are frequently refined, indicating initial results may not be optimal.`,
         action: 'Improve natural language processing and result relevance'
       });
     }
-
+  
     // Popular search times
     if (analytics.userBehavior.peakSearchHours.length > 0) {
       const peakHour = analytics.userBehavior.peakSearchHours[0];
       recommendations.push({
-        type: 'info' as const,
+        type: 'info',
         title: 'Peak Usage Pattern',
         description: `Most searches occur at ${peakHour.hour}:00 with ${peakHour.searches} searches.`,
         action: 'Consider optimizing performance during peak hours'
       });
     }
-
+  
     // Search diversity
     if (analytics.uniqueQueries / analytics.totalSearches < 0.3) {
       recommendations.push({
-        type: 'info' as const,
+        type: 'info',
         title: 'Repetitive Searches',
         description: 'Users frequently repeat the same searches.',
         action: 'Consider improving search suggestions and result persistence'
       });
     }
-
+  
     return recommendations;
   }
 

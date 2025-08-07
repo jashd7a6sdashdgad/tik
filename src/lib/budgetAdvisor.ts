@@ -1,4 +1,4 @@
-'use client';
+// AI-Powered Budget Advisor with Smart Financial Recommendations
 
 export interface BudgetAnalysis {
   totalSpent: number;

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSync, useSyncEvents, SyncConflict } from '@/lib/sync';
-import { useOffline } from '@/lib/offline';
-import { usePWA } from '@/lib/pwa';
+import { useSync, useSyncEvents } from '@/hooks/useSync';
+import { SyncConflict } from '@/lib/sync';
+import { useOffline } from '@/hooks/useOffline';
+import { usePWA } from '@/hooks/usePWA';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 

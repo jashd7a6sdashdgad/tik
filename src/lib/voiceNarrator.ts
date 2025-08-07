@@ -1,6 +1,7 @@
 // Voice Narrator System with Text-to-Speech capabilities
+
 interface VoiceConfig {
-  voice?: SpeechSynthesisVoice;
+  voice?: SpeechSynthesisVoice | null;
   rate: number;
   pitch: number;
   volume: number;
@@ -76,11 +77,11 @@ export class VoiceNarrator {
     // This method now runs only on the client
     if (!this.synthesis) return;
 
-    let selectedVoice = null;
+    let selectedVoice: SpeechSynthesisVoice | null = null;
     for (const preferredName of this.preferredVoices) {
       selectedVoice = this.voices.find(voice =>
         voice.name.includes(preferredName) || voice.name === preferredName
-      );
+      ) || null;
       if (selectedVoice) break;
     }
 
@@ -91,18 +92,18 @@ export class VoiceNarrator {
           voice.name.toLowerCase().includes('woman') ||
           voice.name.toLowerCase().includes('zira') ||
           voice.name.toLowerCase().includes('hazel'))
-      );
+      ) || null;
     }
 
     if (!selectedVoice) {
-      selectedVoice = this.voices.find(voice => voice.lang.startsWith('en'));
+      selectedVoice = this.voices.find(voice => voice.lang.startsWith('en')) || null;
     }
 
     if (!selectedVoice && this.voices.length > 0) {
       selectedVoice = this.voices[0];
     }
 
-    this.voiceConfig.voice = selectedVoice || undefined;
+    this.voiceConfig.voice = selectedVoice;
   }
 
   private loadSettings() {

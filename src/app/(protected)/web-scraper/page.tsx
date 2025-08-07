@@ -116,18 +116,22 @@ export default function WebScraperPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Simplified Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center space-x-3">
-            <Globe className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold text-black">{t('webScraperTitle')}</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg">
+              <Globe className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                {t('webScraperTitle')}
+              </h1>
+              <p className="text-gray-600 font-medium mt-1">Extract content from any website</p>
+            </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Tab Selection */}
         <div className="flex space-x-2 mb-6">
           <Button
@@ -372,7 +376,7 @@ export default function WebScraperPage() {
             )}
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

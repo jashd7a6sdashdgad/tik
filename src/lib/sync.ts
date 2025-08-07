@@ -1,6 +1,4 @@
-'use client';
-
-import { useRef, useCallback } from 'react';
+// Data Synchronization Manager - Cross-device data sync with conflict resolution
 
 export interface SyncData {
   type: 'expense' | 'contact' | 'shopping-list' | 'diary' | 'calendar';
@@ -24,7 +22,7 @@ class SyncManager {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private deviceId: string;
+  private deviceId!: string;
   private userId: string | null = null;
   private syncQueue: SyncData[] = [];
   private isOnline = typeof navigator !== 'undefined' ? navigator.onLine : false;
@@ -363,38 +361,3 @@ class SyncManager {
 
 // Global sync manager instance
 export const syncManager = new SyncManager();
-
-// React hook for using sync
-export function useSync() {
-  const syncRef = useRef(syncManager);
-  
-  const sync = useCallback((data: Omit<SyncData, 'timestamp' | 'userId' | 'deviceId'>) => {
-    syncRef.current.sync(data);
-  }, []);
-
-  const getOfflineData = useCallback(<T>(type: string): T[] => {
-    return syncRef.current.getOfflineData<T>(type);
-  }, []);
-
-  const resolveConflict = useCallback((conflict: SyncConflict, useLocal: boolean) => {
-    syncRef.current.resolveConflict(conflict, useLocal);
-  }, []);
-
-  const getSyncStatus = useCallback(() => {
-    return syncRef.current.getSyncStatus();
-  }, []);
-
-  return { sync, getOfflineData, resolveConflict, getSyncStatus };
-}
-
-// React hook for sync events
-export function useSyncEvents() {
-  const syncRef = useRef(syncManager);
-  
-  const on = useCallback((event: string, callback: (...args: any[]) => void) => {
-    syncRef.current.on(event, callback);
-    return () => syncRef.current.off(event, callback);
-  }, []);
-
-  return { on };
-}

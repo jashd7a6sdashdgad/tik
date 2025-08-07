@@ -1,8 +1,14 @@
-'use client';
+// Progressive Web App Manager with Service Worker and Install Prompts
 
-import { useEffect, useState, useCallback } from 'react';
+// Declare SyncManager to resolve the TypeScript error
+declare global {
+  interface SyncManager {
+    register(tag: string): Promise<void>;
+  }
+}
 
-interface PWAInstallPrompt {
+// Adjusted type to match the 'beforeinstallprompt' event object for better type safety
+interface PWAInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
@@ -14,7 +20,7 @@ interface UpdateAvailableInfo {
 }
 
 class PWAManager {
-  private deferredPrompt: PWAInstallPrompt | null = null;
+  private deferredPrompt: PWAInstallPromptEvent | null = null;
   private registration: ServiceWorkerRegistration | null = null;
   private updateAvailable = false;
   private listeners: Map<string, ((...args: any[]) => void)[]> = new Map();
@@ -66,7 +72,8 @@ class PWAManager {
     // Handle install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
-      this.deferredPrompt = e as any;
+      // Correctly type the event object
+      this.deferredPrompt = e as PWAInstallPromptEvent;
       this.emit('installPromptAvailable', true);
     });
 
@@ -86,14 +93,14 @@ class PWAManager {
 
   private async setupNotifications() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
-      // Check current permission
       const permission = Notification.permission;
       this.emit('notificationPermission', permission);
     }
   }
 
   private setupBackgroundSync() {
-    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+    // Check for `sync` support on the registration object
+    if ('serviceWorker' in navigator && this.registration && 'sync' in this.registration) {
       console.log('🔄 Background sync is supported');
       this.emit('backgroundSyncSupported', true);
     }
@@ -107,7 +114,7 @@ class PWAManager {
     }
 
     try {
-      await this.deferredPrompt.prompt();
+      this.deferredPrompt.prompt();
       const choiceResult = await this.deferredPrompt.userChoice;
       
       if (choiceResult.outcome === 'accepted') {
@@ -132,8 +139,8 @@ class PWAManager {
   // Check if running as PWA
   isPWA(): boolean {
     return window.matchMedia('(display-mode: standalone)').matches ||
-           (window.navigator as any).standalone === true ||
-           document.referrer.includes('android-app://');
+              (window.navigator as any).standalone === true ||
+              document.referrer.includes('android-app://');
   }
 
   // Update service worker
@@ -170,12 +177,16 @@ class PWAManager {
       }
     }
 
-    await this.registration.showNotification(title, {
+    const notificationOptions = {
       icon: '/icons/icon-192x192.png',
       badge: '/icons/badge-72x72.png',
+      // The `vibrate` property is not in the standard NotificationOptions type,
+      // so we include it and then cast the entire object to the correct type.
       vibrate: [100, 50, 100],
       ...options
-    });
+    };
+
+    await this.registration.showNotification(title, notificationOptions as NotificationOptions);
   }
 
   // Register for background sync
@@ -185,8 +196,13 @@ class PWAManager {
     }
 
     if ('sync' in this.registration) {
-      await this.registration.sync.register(tag);
+      // Type assertion to inform TypeScript that 'sync' is a SyncManager.
+      // The `declare global` block above ensures this type is recognized.
+      const syncManager = this.registration.sync as SyncManager;
+      await syncManager.register(tag);
       console.log(`🔄 Registered background sync: ${tag}`);
+    } else {
+      console.warn('Background sync not supported by this browser.');
     }
   }
 
@@ -195,8 +211,9 @@ class PWAManager {
     return {
       serviceWorker: 'serviceWorker' in navigator,
       notifications: 'Notification' in window,
-      backgroundSync: 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype,
-      periodicSync: 'serviceWorker' in navigator && 'periodicSync' in window.ServiceWorkerRegistration.prototype,
+      // Check `sync` property on the registration object, not the window prototype
+      backgroundSync: 'serviceWorker' in navigator && this.registration && 'sync' in this.registration,
+      periodicSync: 'serviceWorker' in navigator && this.registration && 'periodicSync' in this.registration,
       webShare: 'share' in navigator,
       installPrompt: this.deferredPrompt !== null,
       isPWA: this.isPWA(),
@@ -204,18 +221,21 @@ class PWAManager {
     };
   }
 
-  // Share content
-  async shareContent(data: ShareData): Promise<void> {
-    if ('share' in navigator) {
-      await navigator.share(data);
+// Share content
+async shareContent(data: ShareData): Promise<void> {
+  if ('share' in navigator) {
+    await navigator.share(data);
+  } else {
+    // Fallback to clipboard
+    if (data.url) {
+      // Use a type assertion to bypass the TypeScript error for 'clipboard'
+      await (navigator as any).clipboard.writeText(data.url);
+      console.log('📋 URL copied to clipboard');
     } else {
-      // Fallback to clipboard
-      if (data.url) {
-        await navigator.clipboard.writeText(data.url);
-        console.log('📋 URL copied to clipboard');
-      }
+      console.warn('Web Share API is not supported and no URL was provided to copy.');
     }
   }
+}
 
   // Event system
   on(event: string, callback: (...args: any[]) => void) {
@@ -267,96 +287,3 @@ class PWAManager {
 
 // Global PWA manager instance
 export const pwaManager = new PWAManager();
-
-// React hook for PWA functionality
-export function usePWA() {
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [isPWA, setIsPWA] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<UpdateAvailableInfo>({
-    isUpdateAvailable: false,
-    updateSW: async () => {},
-    registration: null
-  });
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
-  const [capabilities, setCapabilities] = useState(pwaManager.getCapabilities());
-
-  useEffect(() => {
-    // Initial state
-    setIsInstallable(pwaManager.isInstallable());
-    setIsPWA(pwaManager.isPWA());
-    setCapabilities(pwaManager.getCapabilities());
-
-    // Listen for events
-    const unsubscribeInstall = () => pwaManager.on('installPromptAvailable', setIsInstallable);
-    const unsubscribeUpdate = () => pwaManager.on('updateAvailable', setUpdateInfo);
-    const unsubscribePermission = () => pwaManager.on('notificationPermission', setNotificationPermission);
-
-    unsubscribeInstall();
-    unsubscribeUpdate();
-    unsubscribePermission();
-
-    return () => {
-      pwaManager.off('installPromptAvailable', setIsInstallable);
-      pwaManager.off('updateAvailable', setUpdateInfo);
-      pwaManager.off('notificationPermission', setNotificationPermission);
-    };
-  }, []);
-
-  const installPWA = useCallback(async () => {
-    const result = await pwaManager.installPWA();
-    if (result) {
-      setIsInstallable(false);
-      setIsPWA(true);
-    }
-    return result;
-  }, []);
-
-  const showNotification = useCallback(async (title: string, options?: NotificationOptions) => {
-    return pwaManager.showNotification(title, options);
-  }, []);
-
-  const requestNotificationPermission = useCallback(async () => {
-    return pwaManager.requestNotificationPermission();
-  }, []);
-
-  const shareContent = useCallback(async (data: ShareData) => {
-    return pwaManager.shareContent(data);
-  }, []);
-
-  const registerBackgroundSync = useCallback(async (tag: string) => {
-    return pwaManager.registerBackgroundSync(tag);
-  }, []);
-
-  return {
-    isInstallable,
-    isPWA,
-    updateInfo,
-    notificationPermission,
-    capabilities,
-    installPWA,
-    showNotification,
-    requestNotificationPermission,
-    shareContent,
-    registerBackgroundSync
-  };
-}
-
-// React hook for online/offline status
-export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  return isOnline;
-}

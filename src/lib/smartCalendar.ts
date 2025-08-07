@@ -68,11 +68,11 @@ export interface ConferenceData {
 }
 
 export interface PreparationItem {
-  type: 'email' | 'document' | 'contact' | 'task' | 'note';
+  type: 'email' | 'document' | 'contact' | 'task' | 'note' | 'travel' | 'agenda';
   title: string;
   content?: string;
   url?: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: 'low' | 'medium' | 'high' | 'critical';
   completed: boolean;
 }
 
