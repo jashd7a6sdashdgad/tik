@@ -22,6 +22,21 @@ interface UseVoiceInputReturn {
 }
 
 export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputReturn {
+  // TEMPORARILY DISABLED for stability - return safe defaults
+  return {
+    isListening: false,
+    isSupported: false,
+    transcript: '',
+    error: null,
+    hasPermission: false,
+    startListening: () => {},
+    stopListening: () => {},
+    resetTranscript: () => {},
+    requestPermission: async () => false
+  };
+  
+  // Original implementation commented out for now
+  /*
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
@@ -78,7 +93,7 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     return () => {
       // The `if` check here is important to avoid a null reference error
       if (voiceRecognition.current) {
-        voiceRecognition.current.stop();
+        voiceRecognition.current.stopListening();
       }
     };
   }, [config.language, config.continuous, config.interimResults, config.onResult]);
@@ -143,7 +158,7 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     if (!voiceRecognition.current) return;
     
     console.log('🎤 Stopping voice recognition...');
-    voiceRecognition.current.stop();
+    voiceRecognition.current.stopListening();
   }, [voiceRecognition]);
 
   const resetTranscript = useCallback(() => {
@@ -162,4 +177,5 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     resetTranscript,
     requestPermission
   };
+  */
 }

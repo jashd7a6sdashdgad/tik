@@ -360,14 +360,22 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-left">
-            <h1 className="text-3xl font-bold text-black">{t('settingsTitle')}</h1>
-            <p className="text-black mt-2">{t('settingsDescription')}</p>
-          </div>
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+                <SettingsIcon className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {t('settingsTitle')}
+                </h1>
+                <p className="text-gray-600 font-medium mt-1">{t('settingsDescription')}</p>
+              </div>
+            </div>
           
           <div className="flex items-center space-x-4">
             <Button onClick={handleSaveSettings} disabled={saving}>
@@ -375,49 +383,57 @@ export default function SettingsPage() {
               {saving ? t('saving') : t('saveChanges')}
             </Button>
           </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
+          {/* Modern Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <Card className="palette-card">
-              <CardHeader>
-                <CardTitle className="text-black">Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <nav className="space-y-2">
-                  {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                          activeTab === tab.id
-                            ? 'bg-primary text-white'
-                            : 'text-black hover:bg-secondary'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </CardContent>
-            </Card>
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-6 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+              <div className="mb-4">
+                <h3 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Settings Menu</h3>
+              </div>
+              <nav className="space-y-3">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                        activeTab === tab.id
+                          ? 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/20'
+                          : 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5 hover:shadow-md hover:shadow-primary/10'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 transition-all duration-300 ${
+                        activeTab === tab.id ? 'text-white scale-110' : 'group-hover:scale-110'
+                      }`} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* Profile Settings */}
             {activeTab === 'profile' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Profile Information</CardTitle>
-                  <CardDescription className="text-black">Update your personal information and preferences</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl shadow-lg">
+                    <User className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                      Profile Information
+                    </h2>
+                    <p className="text-gray-600 font-medium">Update your personal information and preferences</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-black mb-1">Username</label>
@@ -480,18 +496,25 @@ export default function SettingsPage() {
                       </select>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Notifications Settings */}
             {activeTab === 'notifications' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Notification Preferences</CardTitle>
-                  <CardDescription className="text-black">Choose how you want to be notified</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
+                    <Bell className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                      Notification Preferences
+                    </h2>
+                    <p className="text-gray-600 font-medium">Choose how you want to be notified</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
                   <div className="space-y-4">
                     {Object.entries(settings.notifications).map(([key, value]) => (
                       <div key={key} className="flex items-center justify-between">
@@ -524,18 +547,25 @@ export default function SettingsPage() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Privacy Settings */}
             {activeTab === 'privacy' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Privacy & Security</CardTitle>
-                  <CardDescription className="text-black">Control your data and privacy settings</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl shadow-lg">
+                    <Shield className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                      Privacy & Security
+                    </h2>
+                    <p className="text-gray-600 font-medium">Control your data and privacy settings</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -581,18 +611,25 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Appearance Settings */}
             {activeTab === 'appearance' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Appearance</CardTitle>
-                  <CardDescription className="text-black">Customize the look and feel</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl shadow-lg">
+                    <Palette className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                      Appearance
+                    </h2>
+                    <p className="text-gray-600 font-medium">Customize the look and feel</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-black mb-1">Theme</label>
@@ -627,61 +664,82 @@ export default function SettingsPage() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-black mb-3">Color Scheme</label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-4">Modern Color Palettes</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {[
-                        { id: 'default', name: 'Default', primary: '#3D74B6', secondary: '#EAC8A6', accent: '#DC3C22' },
-                        { id: 'blue', name: 'Ocean Blue', primary: '#2563eb', secondary: '#dbeafe', accent: '#dc2626' },
-                        { id: 'green', name: 'Nature Green', primary: '#16a34a', secondary: '#dcfce7', accent: '#dc2626' }
+                        { id: 'default', name: 'Classic Blue', primary: '#3D74B6', secondary: '#EAC8A6', accent: '#DC3C22', gradient: 'from-blue-500 to-blue-600' },
+                        { id: 'ocean', name: 'Ocean Breeze', primary: '#0ea5e9', secondary: '#e0f2fe', accent: '#0284c7', gradient: 'from-sky-400 to-blue-500' },
+                        { id: 'forest', name: 'Forest Green', primary: '#059669', secondary: '#d1fae5', accent: '#047857', gradient: 'from-emerald-400 to-green-500' },
+                        { id: 'sunset', name: 'Sunset Orange', primary: '#ea580c', secondary: '#fed7aa', accent: '#dc2626', gradient: 'from-orange-400 to-red-500' },
+                        { id: 'royal', name: 'Royal Purple', primary: '#7c3aed', secondary: '#e9d5ff', accent: '#a855f7', gradient: 'from-purple-500 to-violet-600' },
+                        { id: 'rose', name: 'Rose Pink', primary: '#e11d48', secondary: '#fecdd3', accent: '#f43f5e', gradient: 'from-pink-400 to-rose-500' },
+                        { id: 'cyber', name: 'Cyber Mint', primary: '#06b6d4', secondary: '#cffafe', accent: '#0891b2', gradient: 'from-cyan-400 to-teal-500' },
+                        { id: 'gold', name: 'Golden Hour', primary: '#f59e0b', secondary: '#fef3c7', accent: '#d97706', gradient: 'from-yellow-400 to-orange-500' }
                       ].map((scheme) => (
                         <button
                           key={scheme.id}
-                          onClick={() => setSettings({
-                            ...settings,
-                            appearance: { ...settings.appearance, colorScheme: scheme.id }
-                          })}
-                          className={`p-4 rounded-lg border-2 transition-all ${
+                          onClick={() => {
+                            setSettings({
+                              ...settings,
+                              appearance: { ...settings.appearance, colorScheme: scheme.id }
+                            });
+                            // Apply colors immediately to CSS variables
+                            document.documentElement.style.setProperty('--color-primary', scheme.primary);
+                            document.documentElement.style.setProperty('--color-secondary', scheme.secondary);
+                            document.documentElement.style.setProperty('--color-accent', scheme.accent);
+                          }}
+                          className={`group p-4 rounded-2xl border-2 transition-all duration-300 transform hover:scale-105 ${
                             settings.appearance.colorScheme === scheme.id
-                              ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-                              : 'border-gray-300 hover:border-primary/50 hover:shadow-md'
+                              ? 'border-primary bg-gradient-to-br from-primary/10 to-primary/5 ring-2 ring-primary/30 shadow-lg'
+                              : 'border-gray-200 hover:border-primary/50 hover:shadow-xl hover:bg-white/80'
                           }`}
                         >
-                          <div className="flex space-x-1 mb-3">
-                            <div 
-                              className="w-6 h-6 rounded-full border border-white shadow-sm" 
-                              style={{ backgroundColor: scheme.primary }}
-                            ></div>
-                            <div 
-                              className="w-6 h-6 rounded-full border border-white shadow-sm" 
-                              style={{ backgroundColor: scheme.secondary }}
-                            ></div>
-                            <div 
-                              className="w-6 h-6 rounded-full border border-white shadow-sm" 
-                              style={{ backgroundColor: scheme.accent }}
-                            ></div>
+                          <div className={`w-full h-16 rounded-xl mb-3 bg-gradient-to-r ${scheme.gradient} shadow-lg relative overflow-hidden`}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"></div>
+                            <div className="absolute bottom-2 left-2 flex space-x-1">
+                              <div 
+                                className="w-3 h-3 rounded-full border border-white/50 shadow-sm" 
+                                style={{ backgroundColor: scheme.primary }}
+                              ></div>
+                              <div 
+                                className="w-3 h-3 rounded-full border border-white/50 shadow-sm" 
+                                style={{ backgroundColor: scheme.secondary }}
+                              ></div>
+                              <div 
+                                className="w-3 h-3 rounded-full border border-white/50 shadow-sm" 
+                                style={{ backgroundColor: scheme.accent }}
+                              ></div>
+                            </div>
                           </div>
                           <div className="text-center">
-                            <span className="text-sm font-medium text-black block">{scheme.name}</span>
+                            <span className="text-sm font-semibold text-gray-700 block group-hover:text-gray-900 transition-colors">{scheme.name}</span>
                             {settings.appearance.colorScheme === scheme.id && (
-                              <span className="text-xs text-primary font-medium">Active</span>
+                              <span className="text-xs text-primary font-medium mt-1 block">✓ Active</span>
                             )}
                           </div>
                         </button>
                       ))}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Voice Settings */}
             {activeTab === 'voice' && (
-              <Card className="palette-card">
-                <CardHeader>
-                  <CardTitle className="text-black">Voice Assistant</CardTitle>
-                  <CardDescription className="text-black">Configure voice input and output settings</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+                    <Volume2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                      Voice Assistant
+                    </h2>
+                    <p className="text-gray-600 font-medium">Configure voice input and output settings</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium text-black">Voice Input</h4>
@@ -754,19 +812,26 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
 
             {/* Data Management */}
             {activeTab === 'data' && (
               <div className="space-y-6">
-                <Card className="palette-card">
-                  <CardHeader>
-                    <CardTitle className="text-black">Data Management</CardTitle>
-                    <CardDescription className="text-black">Import, export, and manage your data</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
+                <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-br from-gray-500 to-slate-600 rounded-2xl shadow-lg">
+                      <Database className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                        Data Management
+                      </h2>
+                      <p className="text-gray-600 font-medium">Import, export, and manage your data</p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Button onClick={handleExportData} variant="outline" className="text-black">
                         <Download className="h-4 w-4 mr-2" />
@@ -793,21 +858,25 @@ export default function SettingsPage() {
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Biometric Authentication Settings */}
-                <Card className="palette-card">
-                  <CardHeader>
-                    <CardTitle className="text-black flex items-center gap-3">
-                      <Fingerprint className="h-5 w-5" />
-                      Mobile Biometric Authentication
-                    </CardTitle>
-                    <CardDescription className="text-black">
-                      Configure Face ID, Touch ID, or fingerprint authentication for secure login
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
+                <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl shadow-lg">
+                      <Fingerprint className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                        Mobile Biometric Authentication
+                      </h2>
+                      <p className="text-gray-600 font-medium">
+                        Configure Face ID, Touch ID, or fingerprint authentication for secure login
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
                     {!biometricSupported ? (
                       <div className="text-center py-8">
                         <UserCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -922,7 +991,7 @@ export default function SettingsPage() {
                             </li>
                             <li className="flex items-start gap-2">
                               <span className="font-medium text-primary">2.</span>
-                              Go to the login page and use the "{biometricType}" button
+                              Go to the login page and use the &quot;{biometricType}&quot; button
                             </li>
                             <li className="flex items-start gap-2">
                               <span className="font-medium text-primary">3.</span>
@@ -932,8 +1001,8 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
             )}
           </div>

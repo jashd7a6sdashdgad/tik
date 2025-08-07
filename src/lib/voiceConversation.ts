@@ -56,15 +56,17 @@ export class VoiceConversation {
   private initialize(): void {
     if (this.isInitialized) return;
 
-    // Set up voice recognition callbacks
-    voiceRecognition.setCallbacks({
-      onResult: (command) => this.handleVoiceCommand(command),
-      onError: (error) => this.handleRecognitionError(error),
-      onStart: () => this.updateState({ isListening: true }),
-      onEnd: () => this.updateState({ isListening: false }),
-      onSpeechStart: () => this.handleSpeechStart(),
-      onSpeechEnd: () => this.handleSpeechEnd()
-    });
+    // Set up voice recognition callbacks with safety check
+    if (voiceRecognition && voiceRecognition.setCallbacks) {
+      voiceRecognition.setCallbacks({
+        onResult: (command) => this.handleVoiceCommand(command),
+        onError: (error) => this.handleRecognitionError(error),
+        onStart: () => this.updateState({ isListening: true }),
+        onEnd: () => this.updateState({ isListening: false }),
+        onSpeechStart: () => this.handleSpeechStart(),
+        onSpeechEnd: () => this.handleSpeechEnd()
+      });
+    }
 
     // Set up narrator event listeners
     this.setupNarratorListeners();
@@ -80,7 +82,7 @@ export class VoiceConversation {
       
       // Pause listening while speaking to avoid feedback
       if (this.state.isListening && this.interruptionEnabled) {
-        voiceRecognition.stopListening();
+        voiceRecognition?.stopListening();
       }
     });
 
@@ -507,7 +509,7 @@ export class VoiceConversation {
 
   // Public methods
   startConversation(): boolean {
-    if (!voiceRecognition.isRecognitionSupported()) {
+    if (!voiceRecognition?.isRecognitionSupported()) {
       console.error('Voice recognition not supported');
       return false;
     }
@@ -527,14 +529,14 @@ export class VoiceConversation {
 
   stopConversation(): void {
     this.updateState({ isActive: false });
-    voiceRecognition.stopListening();
+    voiceRecognition?.stopListening();
     voiceNarrator.stopSpeaking();
     console.log('🛑 N8N Voice conversation ended');
   }
 
   pauseConversation(): void {
     if (this.state.isActive) {
-      voiceRecognition.stopListening();
+      voiceRecognition?.stopListening();
       this.updateState({ isListening: false });
     }
   }
@@ -547,11 +549,11 @@ export class VoiceConversation {
 
   startListening(): boolean {
     if (!this.state.isActive) return false;
-    return voiceRecognition.startListening();
+    return voiceRecognition?.startListening() ?? false;
   }
 
   stopListening(): void {
-    voiceRecognition.stopListening();
+    voiceRecognition?.stopListening();
   }
 
   toggleConversation(): boolean {
@@ -573,7 +575,7 @@ export class VoiceConversation {
   }
 
   setLanguage(language: string): void {
-    voiceRecognition.setLanguage(language);
+    voiceRecognition?.setLanguage(language);
   }
 
   // Getters
@@ -609,7 +611,7 @@ export class VoiceConversation {
   // Cleanup
   destroy(): void {
     this.stopConversation();
-    voiceRecognition.destroy();
+    voiceRecognition?.destroy();
     this.callbacks = {};
     this.isInitialized = false;
   }

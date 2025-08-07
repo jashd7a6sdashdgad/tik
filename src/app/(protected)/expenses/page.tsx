@@ -27,7 +27,7 @@ import {
   Target,
   Eye
 } from 'lucide-react';
-import { useVoiceInput } from '@/hooks/useVoiceInput';
+// import { useVoiceInput } from '@/hooks/useVoiceInput'; // Removed for stability
 import AddExpenseForm from '@/components/AddExpenseForm';
 import { expenseIntelligence, SmartExpense } from '@/lib/expenseIntelligence';
 import ExpenseInsightsDashboard from '@/components/ExpenseInsightsDashboard';
@@ -66,14 +66,23 @@ export default function ExpensesPage() {
   const [showBudgetAdvisor, setShowBudgetAdvisor] = useState(false);
   const [smartExpenses, setSmartExpenses] = useState<SmartExpense[]>([]);
 
-  const { 
-    isListening, 
-    transcript, 
-    startListening, 
-    stopListening, 
-    resetTranscript, 
-    isSupported 
-  } = useVoiceInput();
+  // Voice input temporarily disabled for stability
+  // const { 
+  //   isListening, 
+  //   transcript, 
+  //   startListening, 
+  //   stopListening, 
+  //   resetTranscript, 
+  //   isSupported 
+  // } = useVoiceInput();
+
+  // Mock voice input values
+  const isListening = false;
+  const transcript = '';
+  const startListening = () => {};
+  const stopListening = () => {};
+  const resetTranscript = () => {};
+  const isSupported = false;
 
   const categories = [
     { value: 'Food', label: t('food') },

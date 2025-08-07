@@ -13,7 +13,7 @@ interface SpeechRecognition extends EventTarget {
   lang: string;
   maxAlternatives: number;
   start(): void;
-  stop(): void;
+  stopListening(): void;
   abort(): void;
   onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
   onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
@@ -223,7 +223,7 @@ export class VoiceRecognition {
     try {
       this.recognition.start();
       return true;
-    } catch (error) {
+    } catch (_error) {
       this.callbacks.onError?.('Failed to start speech recognition');
       return false;
     }
@@ -289,3 +289,6 @@ export class VoiceRecognition {
     this.callbacks = {};
   }
 }
+
+// Export a singleton instance
+export const voiceRecognition = new VoiceRecognition();

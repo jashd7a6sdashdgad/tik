@@ -37,7 +37,7 @@ import UnifiedStats from '@/components/UnifiedStats';
 import SmartNotifications from '@/components/SmartNotifications';
 import SmartQuickActions from '@/components/SmartQuickActions';
 import ActivityTimeline from '@/components/ActivityTimeline';
-import VoiceAssistantWidget from '@/components/VoiceAssistantWidget';
+// import VoiceAssistantWidget from '@/components/VoiceAssistantWidget'; // Removed for stability
 
 interface CalendarEvent {
   start?: {
@@ -47,6 +47,8 @@ interface CalendarEvent {
 }
 
 export default function DashboardPage() {
+  // Enhanced styles for modern glassmorphism
+  const cardHoverEffects = "hover:shadow-3xl hover:scale-[1.02] transition-all duration-500 transform";
   const { user } = useAuth();
   const router = useRouter();
   const { language } = useSettings();
@@ -511,52 +513,60 @@ if (calendarResponse && calendarResponse.ok) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <div className="flex items-center gap-3">
-              <Brain className="h-8 w-8 text-purple-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-black">Smart Dashboard</h1>
-                <p className="text-sm text-muted-foreground">AI-powered insights and unified control</p>
+        {/* Modern Header Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-6 mb-8 hover:shadow-3xl transition-all duration-300">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-lg">
+                  <Brain className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    Smart Dashboard
+                  </h1>
+                  <p className="text-sm text-gray-600 font-medium">AI-powered insights and unified control</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6 mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+                  <p className="text-gray-700 font-medium">{t('welcomeBack', { username: user?.username || '' })}</p>
+                </div>
+                {isLoading ? (
+                  <div className="flex items-center space-x-3 px-4 py-2 bg-blue-50 rounded-full">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                    <span className="text-sm font-medium text-blue-700">{t('loadingDashboard')}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3 px-4 py-2 bg-green-50 rounded-full">
+                    <div className={`h-3 w-3 rounded-full ${
+                      dataLoadingStatus.weather === 'success' && 
+                      dataLoadingStatus.calendar === 'success' && 
+                      dataLoadingStatus.email === 'success' && 
+                      dataLoadingStatus.expenses === 'success' 
+                        ? 'bg-green-500 animate-pulse' 
+                        : 'bg-amber-500 animate-pulse'
+                    }`}></div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {Object.values(dataLoadingStatus).filter((status: string) => status === 'success').length}/4 {t('dataSourcesConnected')}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center space-x-4 mt-2">
-              <p className="text-black">{t('welcomeBack', { username: user?.username || '' })}</p>
-              {isLoading ? (
-                <div className="flex items-center space-x-2 text-blue-600">
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-                  <span className="text-sm">{t('loadingDashboard')}</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <div className={`h-2 w-2 rounded-full ${
-                    dataLoadingStatus.weather === 'success' && 
-                    dataLoadingStatus.calendar === 'success' && 
-                    dataLoadingStatus.email === 'success' && 
-                    dataLoadingStatus.expenses === 'success' 
-                      ? 'bg-green-500' 
-                      : 'bg-yellow-500'
-                  }`}></div>
-                  <span className="text-sm text-gray-600">
-                    {Object.values(dataLoadingStatus).filter((status: string) => status === 'success').length}/4 {t('dataSourcesConnected')}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Google Connect Button */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-black border-primary hover:bg-primary hover:text-white flex items-center space-x-2 card-3d"
-              onClick={handleGoogleConnect}
-              disabled={isConnectingGoogle}
-            >
+            
+            <div className="flex items-center space-x-4">
+              {/* Modern Google Connect Button */}
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-white/60 backdrop-blur-sm hover:bg-white/80 border-2 border-blue-200 hover:border-blue-400 text-gray-700 hover:text-blue-700 font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                onClick={handleGoogleConnect}
+                disabled={isConnectingGoogle}
+              >
               {isConnectingGoogle ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
               ) : (
@@ -569,43 +579,102 @@ if (calendarResponse && calendarResponse.ok) {
               )}
               <span>{isConnectingGoogle ? t('connecting') : t('connectGoogle')}</span>
             </Button>
+            </div>
           </div>
         </div>
-        {/* Smart Dashboard Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* AI Insights */}
-          <SmartInsights 
-            dashboardData={dashboardData} 
-            weeklyStats={weeklyStats}
-            className="lg:col-span-2"
-          />
+        {/* Modern Card Grid - AI Insights Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+          {/* Enhanced AI Insights Card */}
+          <div className="lg:col-span-2 group">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500 transform hover:scale-[1.02]">
+              <SmartInsights 
+                dashboardData={dashboardData} 
+                weeklyStats={weeklyStats}
+                className="[&>*]:!bg-transparent [&>*]:!shadow-none [&>*]:!border-none"
+              />
+            </div>
+          </div>
           
-          {/* Smart Notifications */}
-          <SmartNotifications 
-            dashboardData={dashboardData}
-          />
+          {/* Enhanced Notifications Card */}
+          <div className="group">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500 transform hover:scale-[1.02]">
+              <SmartNotifications 
+                dashboardData={dashboardData}
+                className="[&>*]:!bg-transparent [&>*]:!shadow-none [&>*]:!border-none"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Unified Stats */}
-        <div className="mb-8">
-          <UnifiedStats
-            dashboardData={dashboardData}
-            weeklyStats={weeklyStats}
-            socialMediaStats={socialMediaStats}
-          />
+        {/* Modern Stats Overview Card */}
+        <div className="mb-10">
+          <div className="bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl transition-all duration-500">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  Analytics Overview
+                </h2>
+                <p className="text-gray-600 font-medium">Real-time insights across all platforms</p>
+              </div>
+            </div>
+            <UnifiedStats
+              dashboardData={dashboardData}
+              weeklyStats={weeklyStats}
+              socialMediaStats={socialMediaStats}
+              className="[&>*]:!bg-transparent [&>*]:!shadow-none [&>*]:!border-none"
+            />
+          </div>
         </div>
 
-        {/* Smart Actions and Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <SmartQuickActions
-            dashboardData={dashboardData}
-            weeklyStats={weeklyStats}
-          />
+        {/* Modern Actions & Activity Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          {/* Enhanced Quick Actions Card */}
+          <div className="group">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500 transform hover:scale-[1.02]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    Quick Actions
+                  </h2>
+                  <p className="text-gray-600 font-medium">Smart shortcuts</p>
+                </div>
+              </div>
+              <SmartQuickActions
+                dashboardData={dashboardData}
+                weeklyStats={weeklyStats}
+                className="[&>*]:!bg-transparent [&>*]:!shadow-none [&>*]:!border-none"
+              />
+            </div>
+          </div>
           
-          <ActivityTimeline
-            dashboardData={dashboardData}
-          />
+          {/* Enhanced Activity Timeline Card */}
+          <div className="group">
+            <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 hover:shadow-3xl hover:bg-white/80 transition-all duration-500 transform hover:scale-[1.02]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl shadow-lg">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    Activity Timeline
+                  </h2>
+                  <p className="text-gray-600 font-medium">Recent updates</p>
+                </div>
+              </div>
+              <ActivityTimeline
+                dashboardData={dashboardData}
+                className="[&>*]:!bg-transparent [&>*]:!shadow-none [&>*]:!border-none"
+              />
+            </div>
+          </div>
         </div>
+
 
         {/* Legacy Quick Stats (Hidden) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" style={{ display: 'none' }}>
@@ -1211,12 +1280,36 @@ if (calendarResponse && calendarResponse.ok) {
           </div>
         </div>
 
-        {/* Voice Assistant Widget */}
-        <VoiceAssistantWidget 
-          page="dashboard" 
-          position="fixed"
-          size="md"
-        />
+        {/* Modern Feature Shortcuts Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-10">
+          {[
+            { name: 'Calendar', icon: Calendar, route: '/calendar', color: 'from-blue-500 to-cyan-600' },
+            { name: 'Email', icon: Mail, route: '/email', color: 'from-green-500 to-emerald-600' },
+            { name: 'Expenses', icon: DollarSign, route: '/expenses', color: 'from-amber-500 to-orange-600' },
+            { name: 'Diary', icon: BookOpen, route: '/diary', color: 'from-pink-500 to-rose-600' },
+            { name: 'Search', icon: Search, route: '/search', color: 'from-violet-500 to-purple-600' },
+            { name: 'Business', icon: Briefcase, route: '/business', color: 'from-slate-500 to-gray-600' }
+          ].map((feature, index) => {
+            const IconComponent = feature.icon;
+            return (
+              <div 
+                key={feature.name}
+                className="group cursor-pointer"
+                onClick={() => router.push(feature.route)}
+              >
+                <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-white/30 p-6 hover:shadow-xl hover:bg-white/80 transition-all duration-300 transform hover:scale-105 group-hover:-translate-y-1">
+                  <div className={`p-3 bg-gradient-to-br ${feature.color} rounded-xl shadow-md mb-3 mx-auto w-fit`}>
+                    <IconComponent className="h-6 w-6 text-white" />
+                  </div>
+                  <p className="text-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors">
+                    {feature.name}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </div>
   );

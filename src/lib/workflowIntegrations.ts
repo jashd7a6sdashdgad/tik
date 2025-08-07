@@ -275,7 +275,7 @@ export class FileSystemIntegration implements FileIntegration {
   }
 
   stopAllWatchers(): void {
-    for (const [path, watcher] of this.watchers) {
+    for (const [_path, watcher] of this.watchers) {
       clearInterval(watcher);
     }
     this.watchers.clear();
