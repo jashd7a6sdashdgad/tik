@@ -741,7 +741,7 @@ export default function CulturalSettings() {
                           type="number"
                           min="0"
                           max="100"
-                          defaultValue="33"
+value="33"
                           placeholder="33"
                         />
                         <p className="text-sm text-muted-foreground mt-1">
@@ -755,7 +755,7 @@ export default function CulturalSettings() {
                           type="number"
                           min="0"
                           max="100"
-                          defaultValue="5"
+value="5"
                           placeholder="5"
                         />
                         <p className="text-sm text-muted-foreground mt-1">
@@ -893,7 +893,7 @@ export default function CulturalSettings() {
 
                     <div>
                       <Label>Date Format</Label>
-                      <Select defaultValue="gregorian">
+                      <Select value="gregorian" onValueChange={() => {}}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -907,7 +907,7 @@ export default function CulturalSettings() {
 
                     <div>
                       <Label>Week Start</Label>
-                      <Select defaultValue="sunday">
+                      <Select value="sunday" onValueChange={() => {}}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

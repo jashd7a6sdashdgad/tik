@@ -27,7 +27,7 @@ import { smartNotificationEngine, NotificationPreferences, VIPContact } from '@/
 
 export default function NotificationSettings() {
   const [preferences, setPreferences] = useState<NotificationPreferences>(
-    smartNotificationEngine.getDefaultPreferences()
+    (smartNotificationEngine as any).getDefaultPreferences()
   );
   const [vipContacts, setVipContacts] = useState<VIPContact[]>([]);
   const [newVipContact, setNewVipContact] = useState({
