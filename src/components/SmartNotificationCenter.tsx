@@ -11,7 +11,7 @@ import {
   AlertTriangle, 
   CheckCircle, 
   X, 
-  Snooze,
+  Clock,
   Navigation,
   Phone,
   Mail,
@@ -118,7 +118,7 @@ export default function SmartNotificationCenter({ isOpen, onClose }: SmartNotifi
     );
   };
 
-  const handleSnooze = (notificationId: string, minutes: number = 15) => {
+  const handleClock = (notificationId: string, minutes: number = 15) => {
     smartNotificationEngine.snoozeNotification(notificationId, minutes);
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, status: 'snoozed' as const } : n)
@@ -148,7 +148,7 @@ export default function SmartNotificationCenter({ isOpen, onClose }: SmartNotifi
         // Open calendar reschedule dialog
         break;
       case 'snooze':
-        handleSnooze(notification.id, action.payload?.minutes || 15);
+        handleClock(notification.id, action.payload?.minutes || 15);
         return;
       case 'custom':
         // Handle custom actions
@@ -337,7 +337,7 @@ export default function SmartNotificationCenter({ isOpen, onClose }: SmartNotifi
                             >
                               {action.action === 'navigate' && <Navigation className="h-3 w-3 mr-1" />}
                               {action.action === 'call' && <Phone className="h-3 w-3 mr-1" />}
-                              {action.action === 'snooze' && <Snooze className="h-3 w-3 mr-1" />}
+                              {action.action === 'snooze' && <Clock className="h-3 w-3 mr-1" />}
                               {action.label}
                             </Button>
                           ))}
@@ -348,7 +348,7 @@ export default function SmartNotificationCenter({ isOpen, onClose }: SmartNotifi
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleSnooze(notification.id)}
+                                onClick={() => handleClock(notification.id)}
                                 className="text-xs"
                               >
                                 <Clock className="h-3 w-3" />
