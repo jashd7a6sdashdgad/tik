@@ -822,17 +822,17 @@ export default function CulturalSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked />
+                  <Switch checked={true} />
                   <Label>Show Hijri dates in calendar</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked />
+                  <Switch checked={true} />
                   <Label>Display Islamic holidays</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch defaultChecked />
+                  <Switch checked={true} />
                   <Label>Remind about upcoming Islamic events</Label>
                 </div>
 
@@ -878,7 +878,7 @@ export default function CulturalSettings() {
                   <div className="space-y-4">
                     <div>
                       <Label>Preferred Language</Label>
-                      <Select defaultValue="en">
+                      <Select value="en" onValueChange={() => {}}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -922,7 +922,7 @@ export default function CulturalSettings() {
 
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
-                      <Switch defaultChecked />
+                      <Switch checked={true} />
                       <Label>Use Islamic greetings</Label>
                     </div>
 
@@ -932,7 +932,7 @@ export default function CulturalSettings() {
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <Switch defaultChecked />
+                      <Switch checked={true} />
                       <Label>Respect prayer times in scheduling</Label>
                     </div>
 
