@@ -466,7 +466,7 @@ export default function VoiceChatInterface({
           <Button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isProcessing}
-            size="icon"
+            size="sm"
             className={`relative h-12 w-12 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'}`}
           >
             {isRecording && (

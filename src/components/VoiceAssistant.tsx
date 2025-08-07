@@ -18,13 +18,8 @@ import {
   Loader2
 } from 'lucide-react';
 
-// Extend Window interface for TypeScript
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
+// TypeScript declarations for Web Speech API
+declare const webkitSpeechRecognition: any;
 
 interface VoiceMessage {
   id: string;
@@ -54,8 +49,48 @@ export function VoiceAssistant() {
   const recognitionRef = useRef<any>(null);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // React Speech Kit hooks
-  const { speak, cancel, speaking, supported: speechSupported, voices } = useSpeechSynthesis();
+  // Manual speech synthesis implementation
+  const [speaking, setSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      setSpeechSupported(true);
+      setVoices(window.speechSynthesis.getVoices());
+      
+      // Update voices when they load
+      window.speechSynthesis.onvoiceschanged = () => {
+        setVoices(window.speechSynthesis.getVoices());
+      };
+    }
+  }, []);
+
+  const speak = (input: string | { text: string; voice?: SpeechSynthesisVoice; rate?: number; pitch?: number; volume?: number }) => {
+    const textToSpeak = typeof input === 'string' ? input : input.text;
+    if (speechSupported && textToSpeak) {
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      
+      if (typeof input === 'object') {
+        if (input.voice) utterance.voice = input.voice;
+        if (input.rate !== undefined) utterance.rate = input.rate;
+        if (input.pitch !== undefined) utterance.pitch = input.pitch;
+        if (input.volume !== undefined) utterance.volume = input.volume;
+      }
+      
+      utterance.onstart = () => setSpeaking(true);
+      utterance.onend = () => setSpeaking(false);
+      utterance.onerror = () => setSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const cancel = () => {
+    if (speechSupported) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+    }
+  };
   
   // Enhanced voice activity detection with immediate interruption
   const startContinuousListening = () => {
@@ -191,7 +226,7 @@ export function VoiceAssistant() {
       
     } catch (error) {
       console.error('❌ Failed to start advanced recognition:', error);
-      setError('Failed to start voice recognition: ' + error.message);
+      setError('Failed to start voice recognition: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
   
@@ -226,23 +261,57 @@ export function VoiceAssistant() {
     }
   }, [speechSupported, voices.length]);
   
-  const {
-    listen,
-    listening,
-    stop,
-    supported: recognitionSupported
-  } = useSpeechRecognition({
-    onResult: (result: string) => {
-      console.log('🎤 Speech recognition result:', result);
-      if (result.trim()) {
-        handleUserMessage(result);
-      }
-    },
-    onError: (error: any) => {
-      console.error('🎤 Speech recognition error:', error);
-      setError(error.message || 'Voice recognition error occurred');
+  // Manual speech recognition implementation
+  const [listening, setListening] = useState(false);
+  const [recognitionSupported, setRecognitionSupported] = useState(false);
+  const recognitionInstance = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      setRecognitionSupported(true);
     }
-  });
+  }, []);
+
+  const listen = (options?: { lang?: string; interimResults?: boolean; continuous?: boolean }) => {
+    if (!recognitionSupported) return;
+    
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = options?.continuous ?? false;
+      recognition.interimResults = options?.interimResults ?? false;
+      recognition.lang = options?.lang ?? 'en-US';
+      
+      recognition.onstart = () => setListening(true);
+      recognition.onend = () => setListening(false);
+      recognition.onerror = (error: any) => {
+        console.error('🎤 Speech recognition error:', error);
+        setError(error.error || 'Voice recognition error occurred');
+        setListening(false);
+      };
+      recognition.onresult = (event: any) => {
+        const result = event.results[0][0].transcript;
+        console.log('🎤 Speech recognition result:', result);
+        if (result.trim()) {
+          handleUserMessage(result);
+        }
+      };
+      
+      recognitionInstance.current = recognition;
+      recognition.start();
+    } catch (error) {
+      console.error('Failed to start speech recognition:', error);
+      setError('Failed to start voice recognition');
+    }
+  };
+
+  const stop = () => {
+    if (recognitionInstance.current) {
+      recognitionInstance.current.stop();
+      setListening(false);
+    }
+  };
   
   // More flexible support detection - use manual check as fallback
   const hasSpeechSynthesis = typeof window !== 'undefined' && 'speechSynthesis' in window;

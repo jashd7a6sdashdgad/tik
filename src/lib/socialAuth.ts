@@ -8,7 +8,7 @@ interface SocialAuthProvider {
   authUrl: string;
 }
 
-interface SocialUserProfile {
+export interface SocialUserProfile {
   id: string;
   name: string;
   email?: string;

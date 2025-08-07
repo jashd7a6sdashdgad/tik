@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
-import { socialAuth, SocialAuthManager } from '@/lib/socialAuth';
+import { socialAuth, SocialAuthManager, SocialUserProfile } from '@/lib/socialAuth';
 import { 
   Facebook, 
   Instagram, 
@@ -85,7 +85,7 @@ export default function SocialLogin({
     setErrors(prev => new Map(prev.set(provider, '')));
 
     try {
-      let userProfile = null;
+      let userProfile: SocialUserProfile | null = null;
 
       if (provider === 'facebook') {
         // Use Facebook SDK for seamless login

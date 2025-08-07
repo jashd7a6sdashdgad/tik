@@ -11,7 +11,7 @@ import {
   WifiOff, 
   Cloud, 
   CloudOff, 
-  Sync, 
+  RefreshCw, 
   AlertTriangle, 
   Check,
   Clock,
@@ -186,7 +186,7 @@ export default function SyncStatusIndicator() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Pending:</span>
                   <div className="flex items-center space-x-1">
-                    <Sync className="h-4 w-4 text-blue-500" />
+                    <RefreshCw className="h-4 w-4 text-blue-500" />
                     <span className="text-blue-600">
                       {syncStatus.pendingSync} items
                     </span>

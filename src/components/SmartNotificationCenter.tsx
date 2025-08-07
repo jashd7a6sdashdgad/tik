@@ -10,8 +10,7 @@ import {
   Clock, 
   AlertTriangle, 
   CheckCircle, 
-  X, 
-  Clock,
+  X,
   Navigation,
   Phone,
   Mail,
@@ -252,28 +251,28 @@ export default function SmartNotificationCenter({ isOpen, onClose }: SmartNotifi
           {/* Filter tabs */}
           <div className="flex gap-2 mt-4">
             <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
+              variant={filter === 'all' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('all')}
             >
               All ({notifications.length})
             </Button>
             <Button
-              variant={filter === 'unread' ? 'default' : 'outline'}
+              variant={filter === 'unread' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('unread')}
             >
               Unread ({unreadCount})
             </Button>
             <Button
-              variant={filter === 'priority' ? 'default' : 'outline'}
+              variant={filter === 'priority' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('priority')}
             >
               Priority ({priorityCount})
             </Button>
             <Button
-              variant={filter === 'contextual' ? 'default' : 'outline'} 
+              variant={filter === 'contextual' ? 'primary' : 'outline'} 
               size="sm"
               onClick={() => setFilter('contextual')}
             >
