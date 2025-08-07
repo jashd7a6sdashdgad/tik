@@ -555,7 +555,7 @@ export default function SimplifiedInterface() {
               <label className="font-medium">Show Progress Bar</label>
               <Button
                 onClick={() => setShowProgress(!showProgress)}
-                variant={showProgress ? "default" : "outline"}
+                variant={showProgress ? "primary" : "outline"}
                 size="sm"
               >
                 {showProgress ? "On" : "Off"}
