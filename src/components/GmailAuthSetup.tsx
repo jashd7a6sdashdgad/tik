@@ -230,7 +230,7 @@ export default function GmailAuthSetup({ onAuthSuccess, onAuthError }: GmailAuth
           </div>
 
           {error && (
-            <Alert variant="destructive">
+            <Alert className="border-red-200 bg-red-50">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
