@@ -55,7 +55,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
   const { language } = useSettings();
   const t = useTranslation(language);
   const router = useRouter();
-  
+
   // Use separate state hooks for more granular control
   const [narratorState, setNarratorState] = useState<NarratorState>({
     isEnabled: true,
@@ -80,7 +80,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
   const animationRef = useRef<number | null>(null);
 
   // Use useCallback to memoize event handlers and prevent re-creation on every render
-  const handleSpeechStart = useCallback((event: CustomEvent) => {
+  const handleSpeechStart = useCallback(() => {
     setNarratorState(prev => ({
       ...prev,
       isSpeaking: true,
@@ -141,6 +141,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
       setAvailableVoices(voiceNarrator.getAvailableVoices());
     };
 
+    // Correctly type the event listeners
     window.addEventListener('narrator:speaking:start', handleSpeechStart as EventListener);
     window.addEventListener('narrator:speaking:end', handleSpeechEnd as EventListener);
     window.addEventListener('voiceConversation:stateChange', handleConversationStateChange as EventListener);
@@ -282,17 +283,42 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
     }
   };
 
-  const quickMessages = [
-    { text: 'Welcome to your AI assistant!', icon: Bot },
-    { text: 'How can I help you today?', icon: MessageCircle },
-    { text: 'I am ready to assist you with anything you need.', icon: Zap },
-    { text: 'Thank you for using our AI services!', icon: Heart },
-  ];
-
   if (isMinimized) {
     return (
       <div className={`fixed bottom-4 left-4 z-50 ${className}`}>
-        {/* Minimized component code remains the same */}
+        <Button
+          onClick={() => setIsMinimized(false)}
+          className={`rounded-full w-14 h-14 shadow-lg transition-all duration-300 ${
+            narratorState.isSpeaking
+              ? 'bg-blue-600 hover:bg-blue-700 animate-pulse'
+              : narratorState.isEnabled
+                ? 'bg-green-600 hover:bg-green-700'
+                : 'bg-gray-600 hover:bg-gray-700'
+          } text-white`}
+        >
+          {narratorState.isSpeaking ? (
+            <Volume2 className="h-6 w-6" />
+          ) : narratorState.isEnabled ? (
+            <Headphones className="h-6 w-6" />
+          ) : (
+            <VolumeX className="h-6 w-6" />
+          )}
+        </Button>
+        {narratorState.isSpeaking && (
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+            <div className="w-3 h-3 bg-white rounded-full"></div>
+          </div>
+        )}
+        {conversationState.isListening && (
+          <div className="absolute -top-2 -left-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+            <Mic className="h-3 w-3 text-white" />
+          </div>
+        )}
+        {narratorState.queueLength > 0 && (
+          <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {narratorState.queueLength}
+          </div>
+        )}
       </div>
     );
   }
@@ -446,7 +472,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
                   <Button
                     onMouseDown={handleStartListening}
                     onMouseUp={handleStopListening}
-                    onMouseLeave={handleStopListening} // Fix: Add onMouseLeave to handle user moving cursor away
+                    onMouseLeave={handleStopListening}
                     onTouchStart={handleStartListening}
                     onTouchEnd={handleStopListening}
                     variant="outline"
@@ -489,8 +515,99 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
           {showSettings && (
             <div className="border-t pt-4 space-y-3">
               <h4 className="font-medium text-black">Voice Settings</h4>
-              {/* Controls for Voice, Speed, Pitch, Volume */}
-              {/* ... (This section remains largely the same) */}
+              {/* Voice Selection */}
+              <div>
+                <label className="text-sm text-black mb-1 block">Voice:</label>
+                <select
+                  value={voiceConfig.voice || ''}
+                  onChange={(e) => handleVoiceConfigChange('voice', e.target.value)}
+                  className="w-full px-2 py-1 border rounded text-sm text-black"
+                >
+                  <option value="">Default Voice</option>
+                  {availableVoices.map((voice) => (
+                    <option key={voice.name} value={voice.name}>
+                      {voice.name} ({voice.lang})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Speed Control */}
+              <div>
+                <label className="text-sm text-black mb-1 block">
+                  Speed: {voiceConfig.rate.toFixed(1)}x
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={voiceConfig.rate}
+                  onChange={(e) => handleVoiceConfigChange('rate', parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+              {/* Pitch Control */}
+              <div>
+                <label className="text-sm text-black mb-1 block">
+                  Pitch: {voiceConfig.pitch.toFixed(1)}
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={voiceConfig.pitch}
+                  onChange={(e) => handleVoiceConfigChange('pitch', parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+              {/* Volume Control */}
+              <div>
+                <label className="text-sm text-black mb-1 block">
+                  Volume: {Math.round(voiceConfig.volume * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={voiceConfig.volume}
+                  onChange={(e) => handleVoiceConfigChange('volume', parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Test Message */}
+              <div>
+                <label className="text-sm text-black mb-1 block">Test Message:</label>
+                <textarea
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  className="w-full px-2 py-1 border rounded text-sm text-black resize-none"
+                  rows={2}
+                />
+                <div className="mt-2 space-y-2">
+                  <Button
+                    onClick={handleTestVoice}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={!narratorState.isEnabled}
+                  >
+                    <Play className="h-3 w-3 mr-1" />
+                    Test Voice
+                  </Button>
+                  <Button
+                    onClick={handleTestN8N}
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  >
+                    <Zap className="h-3 w-3 mr-1" />
+                    Test N8N AI Connection
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
