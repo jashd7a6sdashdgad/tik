@@ -383,7 +383,7 @@ export default function NotificationSettings() {
                       {['family', 'boss', 'client', 'emergency', 'colleague'].map((rel) => (
                         <Button
                           key={rel}
-                          variant={newVipContact.relationship === rel ? 'default' : 'outline'}
+                          variant={newVipContact.relationship === rel ? 'primary' : 'outline'}
                           size="sm"
                           onClick={() => setNewVipContact(prev => ({ ...prev, relationship: rel as any }))}
                           className="capitalize"
