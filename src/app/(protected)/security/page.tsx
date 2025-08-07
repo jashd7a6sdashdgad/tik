@@ -112,7 +112,7 @@ export default function SecurityPage() {
         alert('Biometric authentication set up successfully!');
       }
     } catch (error) {
-      await auditLogger.logSecurityEvent('biometric_setup', false, 'user1', { error: error.message });
+      await auditLogger.logSecurityEvent('biometric_setup', false, 'user1', { error: error instanceof Error ? error.message : String(error) });
       alert(`Biometric setup failed: ${error}`);
     } finally {
       setIsLoading(false);

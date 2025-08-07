@@ -61,7 +61,7 @@ export default function EmailPage() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<EmailMessage | undefined>(undefined);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [smartMessages, setSmartMessages] = useState<EmailMessage[]>([]);

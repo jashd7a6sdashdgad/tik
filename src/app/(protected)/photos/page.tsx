@@ -393,7 +393,7 @@ export default function PhotosPage() {
         mimeType: photo.mimeType, createdTime: new Date(photo.createdTime),
         modifiedTime: new Date(photo.modifiedTime)
       };
-      const analyzed = await photoIntelligence.analyzePhoto(metadata);
+      const analyzed = await photoIntelligence.analyzePhoto(photo.webViewLink || '', metadata);
       setPhotoMetadata(prev => [analyzed, ...prev.filter(p => p.id !== photo.id)]);
       console.log('🤖 AI analysis completed for:', photo.name);
     } catch (err) {
@@ -418,7 +418,7 @@ export default function PhotosPage() {
       }));
 
       const analysisPromises = metadataToAnalyze.map(meta =>
-        photoIntelligence.analyzePhoto(meta).catch(err => {
+        photoIntelligence.analyzePhoto(meta.url || '', meta).catch(err => {
           console.error(`Failed to analyze ${meta.name}:`, err);
           return { ...meta, searchableText: (meta.name || '').toLowerCase() };
         })
@@ -438,7 +438,7 @@ export default function PhotosPage() {
   const handleVoiceSearch = useCallback(async (query: string) => {
     if (photoMetadata.length === 0) return;
     try {
-      const results = await photoIntelligence.searchPhotosByVoice(photoMetadata, query);
+      const results = await photoIntelligence.searchPhotosByVoice(query, photoMetadata);
       const resultIds = new Set(results.map(r => r.id));
 
       const voiceFilteredPhotos = photos.filter(photo => resultIds.has(photo.id));
@@ -525,7 +525,7 @@ export default function PhotosPage() {
         <Card className="mb-6 border-red-200 bg-red-50 text-red-800">
           <CardContent className="p-4 flex justify-between items-center">
             <p>{error}</p>
-            <Button variant="ghost" size="icon" onClick={() => setError(null)}><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}><X className="h-4 w-4" /></Button>
           </CardContent>
         </Card>
       )}
@@ -533,7 +533,7 @@ export default function PhotosPage() {
         <Card className="mb-6 border-green-200 bg-green-50 text-green-800">
           <CardContent className="p-4 flex justify-between items-center">
             <p>{successMessage}</p>
-            <Button variant="ghost" size="icon" onClick={() => setSuccessMessage(null)}><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => setSuccessMessage(null)}><X className="h-4 w-4" /></Button>
           </CardContent>
         </Card>
       )}
@@ -616,7 +616,7 @@ export default function PhotosPage() {
                         <Button
                           onClick={() => toggleFavorite(photo.id)}
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           className={`text-white hover:text-red-500 ${photo.isFavorite ? 'text-red-500' : ''}`}
                         >
                           <Heart className={`h-4 w-4 ${photo.isFavorite ? 'fill-current' : ''}`} />
@@ -653,14 +653,14 @@ export default function PhotosPage() {
                           <Button
                             onClick={() => toggleFavorite(photo.id)}
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                           >
                             <Heart className={`h-4 w-4 ${photo.isFavorite ? 'fill-current text-red-500' : ''}`} />
                           </Button>
                           <Button
                             onClick={() => deletePhoto(photo.id)}
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>

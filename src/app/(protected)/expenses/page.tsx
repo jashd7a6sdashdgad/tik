@@ -587,7 +587,7 @@ export default function ExpensesPage() {
                               )}
                               
                               {/* Recurring pattern */}
-                              {smartExpense.recurringPattern && smartExpense.recurringPattern !== 'irregular' && (
+                              {'recurringPattern' in smartExpense && smartExpense.recurringPattern && smartExpense.recurringPattern !== 'irregular' && (
                                 <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
                                   {smartExpense.recurringPattern}
                                 </span>
@@ -596,7 +596,7 @@ export default function ExpensesPage() {
                             
                             <div className="text-sm text-gray-600">
                               {expense.date && <span>{new Date(expense.date).toLocaleDateString()}</span>}
-                              {smartExpense.merchant && smartExpense.merchant !== expense.from && (
+                              {'merchant' in smartExpense && smartExpense.merchant && smartExpense.merchant !== expense.from && (
                                 <span className="ml-2">• Merchant: {smartExpense.merchant}</span>
                               )}
                               {expense.from && (
@@ -605,7 +605,7 @@ export default function ExpensesPage() {
                             </div>
                             
                             {/* AI-generated tags */}
-                            {smartExpense.tags && smartExpense.tags.length > 0 && (
+                            {'tags' in smartExpense && smartExpense.tags && smartExpense.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {smartExpense.tags.slice(0, 3).map((tag, idx) => (
                                   <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
@@ -616,7 +616,7 @@ export default function ExpensesPage() {
                             )}
                             
                             {/* AI suggestions */}
-                            {smartExpense.suggestedActions && smartExpense.suggestedActions.length > 0 && (
+                            {'suggestedActions' in smartExpense && smartExpense.suggestedActions && smartExpense.suggestedActions.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1">
                                 {smartExpense.suggestedActions.slice(0, 2).map((action, idx) => (
                                   <span key={idx} className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200">

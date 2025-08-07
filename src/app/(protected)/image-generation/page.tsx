@@ -23,7 +23,7 @@ export default function ImageGenerationPage() {
 
   // Update URL when tab changes (optional, keeps URL synced)
   useEffect(() => {
-    router.replace(`/image-generation?tab=${activeTab}`, { shallow: true });
+    router.replace(`/image-generation?tab=${activeTab}`);
   }, [activeTab, router]);
 
   return (

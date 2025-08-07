@@ -112,7 +112,7 @@ export default function SearchPage() {
             </div>
             <div className="flex items-center space-x-2">
               <Button
-                variant={activeTab === 'search' ? 'default' : 'outline'}
+                variant={activeTab === 'search' ? 'primary' : 'outline'}
                 onClick={() => setActiveTab('search')}
                 size="sm"
               >
@@ -120,7 +120,7 @@ export default function SearchPage() {
                 Search
               </Button>
               <Button
-                variant={activeTab === 'analytics' ? 'default' : 'outline'}
+                variant={activeTab === 'analytics' ? 'primary' : 'outline'}
                 onClick={() => setActiveTab('analytics')}
                 size="sm"
               >

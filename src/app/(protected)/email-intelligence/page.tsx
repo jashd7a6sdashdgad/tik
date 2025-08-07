@@ -45,7 +45,7 @@ interface Email {
   isStarred: boolean;
   labels: string[];
   category: 'primary' | 'social' | 'promotions' | 'updates' | 'work' | 'personal';
-  priority: 'high' | 'medium' | 'low';
+  priority: 'high' | 'medium' | 'low' | 'urgent';
   needsResponse: boolean;
   responseDeadline?: Date;
   aiSummary?: string;
@@ -534,7 +534,7 @@ export default function EmailIntelligencePage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="inbox" className="space-y-6">
+      <Tabs value="inbox" onValueChange={() => {}} className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="inbox" className="flex items-center gap-2">
             <Inbox className="w-4 h-4" />
