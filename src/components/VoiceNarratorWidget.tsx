@@ -76,7 +76,7 @@ export default function VoiceNarratorWidget({ className = '' }: VoiceNarratorWid
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [testMessage, setTestMessage] = useState('Hello! I am your AI narrator assistant. How can I help you today?');
   const audioVisualizerRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Initialize narrator state

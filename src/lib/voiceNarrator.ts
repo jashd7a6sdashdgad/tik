@@ -1,5 +1,4 @@
 // Voice Narrator System with Text-to-Speech capabilities
-
 interface VoiceConfig {
   voice?: SpeechSynthesisVoice;
   rate: number;
@@ -18,7 +17,7 @@ interface NarratorMessage {
 }
 
 export class VoiceNarrator {
-  private synthesis: SpeechSynthesis;
+  private synthesis: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private isEnabled: boolean = true;
   private isSpeaking: boolean = false;
@@ -36,7 +35,6 @@ export class VoiceNarrator {
   ];
 
   constructor() {
-    this.synthesis = window.speechSynthesis;
     this.voiceConfig = {
       rate: 0.9,
       pitch: 1.0,
@@ -44,61 +42,62 @@ export class VoiceNarrator {
       language: 'en-US'
     };
 
-    this.initializeVoices();
-    this.loadSettings();
+    // Initialize browser-specific APIs only on the client
+    if (typeof window !== 'undefined') {
+      this.synthesis = window.speechSynthesis;
+      this.initializeVoices();
+      this.loadSettings();
+    }
   }
 
-  private async initializeVoices() {
+  private initializeVoices() {
+    // This method now runs only on the client
+    if (!this.synthesis) return;
+    
     // Wait for voices to be loaded
-    return new Promise<void>((resolve) => {
-      const loadVoices = () => {
+    const loadVoices = () => {
+      if (this.synthesis) {
         this.voices = this.synthesis.getVoices();
         if (this.voices.length > 0) {
           this.selectBestVoice();
-          resolve();
         } else {
-          // Voices not loaded yet, try again
           setTimeout(loadVoices, 100);
         }
-      };
-
-      if (this.synthesis.onvoiceschanged !== undefined) {
-        this.synthesis.onvoiceschanged = loadVoices;
       }
-
-      loadVoices();
-    });
+    };
+    
+    if (this.synthesis.onvoiceschanged !== undefined) {
+      this.synthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices();
   }
 
   private selectBestVoice() {
-    // Try to find a preferred female voice
-    let selectedVoice = null;
+    // This method now runs only on the client
+    if (!this.synthesis) return;
 
-    // First, try preferred voices
+    let selectedVoice = null;
     for (const preferredName of this.preferredVoices) {
-      selectedVoice = this.voices.find(voice => 
+      selectedVoice = this.voices.find(voice =>
         voice.name.includes(preferredName) || voice.name === preferredName
       );
       if (selectedVoice) break;
     }
 
-    // If no preferred voice found, try to find any female English voice
     if (!selectedVoice) {
-      selectedVoice = this.voices.find(voice => 
-        voice.lang.startsWith('en') && 
-        (voice.name.toLowerCase().includes('female') || 
-         voice.name.toLowerCase().includes('woman') ||
-         voice.name.toLowerCase().includes('zira') ||
-         voice.name.toLowerCase().includes('hazel'))
+      selectedVoice = this.voices.find(voice =>
+        voice.lang.startsWith('en') &&
+        (voice.name.toLowerCase().includes('female') ||
+          voice.name.toLowerCase().includes('woman') ||
+          voice.name.toLowerCase().includes('zira') ||
+          voice.name.toLowerCase().includes('hazel'))
       );
     }
 
-    // Fallback to any English voice
     if (!selectedVoice) {
       selectedVoice = this.voices.find(voice => voice.lang.startsWith('en'));
     }
 
-    // Ultimate fallback to first available voice
     if (!selectedVoice && this.voices.length > 0) {
       selectedVoice = this.voices[0];
     }
@@ -107,12 +106,15 @@ export class VoiceNarrator {
   }
 
   private loadSettings() {
+    // This method now runs only on the client
     try {
-      const saved = localStorage.getItem('narrator_settings');
-      if (saved) {
-        const settings = JSON.parse(saved);
-        this.isEnabled = settings.enabled ?? true;
-        this.voiceConfig = { ...this.voiceConfig, ...settings.voiceConfig };
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem('narrator_settings');
+        if (saved) {
+          const settings = JSON.parse(saved);
+          this.isEnabled = settings.enabled ?? true;
+          this.voiceConfig = { ...this.voiceConfig, ...settings.voiceConfig };
+        }
       }
     } catch (error) {
       console.error('Error loading narrator settings:', error);
@@ -120,17 +122,20 @@ export class VoiceNarrator {
   }
 
   private saveSettings() {
+    // This method now runs only on the client
     try {
-      const settings = {
-        enabled: this.isEnabled,
-        voiceConfig: {
-          rate: this.voiceConfig.rate,
-          pitch: this.voiceConfig.pitch,
-          volume: this.voiceConfig.volume,
-          language: this.voiceConfig.language
-        }
-      };
-      localStorage.setItem('narrator_settings', JSON.stringify(settings));
+      if (typeof localStorage !== 'undefined') {
+        const settings = {
+          enabled: this.isEnabled,
+          voiceConfig: {
+            rate: this.voiceConfig.rate,
+            pitch: this.voiceConfig.pitch,
+            volume: this.voiceConfig.volume,
+            language: this.voiceConfig.language
+          }
+        };
+        localStorage.setItem('narrator_settings', JSON.stringify(settings));
+      }
     } catch (error) {
       console.error('Error saving narrator settings:', error);
     }
@@ -140,6 +145,13 @@ export class VoiceNarrator {
   speak(text: string, type: NarratorMessage['type'] = 'response', priority: NarratorMessage['priority'] = 'medium'): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.isEnabled || !text.trim()) {
+        resolve();
+        return;
+      }
+      
+      // Check for client-side environment before queuing messages
+      if (typeof window === 'undefined' || !this.synthesis) {
+        console.warn('VoiceNarrator not available in this environment.');
         resolve();
         return;
       }
@@ -153,11 +165,9 @@ export class VoiceNarrator {
       };
 
       if (priority === 'high') {
-        // Stop current speech for high priority messages
         this.stopSpeaking();
         this.speakImmediately(message).then(resolve).catch(reject);
       } else {
-        // Add to queue for normal messages
         this.messageQueue.push(message);
         this.processQueue().then(resolve).catch(reject);
       }
@@ -170,7 +180,7 @@ export class VoiceNarrator {
         reject(new Error('Speech synthesis not supported'));
         return;
       }
-
+      
       // Clean and prepare text
       const cleanText = this.cleanTextForSpeech(message.text);
       
@@ -212,7 +222,8 @@ export class VoiceNarrator {
   }
 
   private async processQueue(): Promise<void> {
-    if (this.isSpeaking || this.messageQueue.length === 0) {
+    // Check for client-side environment
+    if (typeof window === 'undefined' || !this.isSpeaking || this.messageQueue.length === 0) {
       return;
     }
 
@@ -228,11 +239,9 @@ export class VoiceNarrator {
     if (message) {
       try {
         await this.speakImmediately(message);
-        // Process next message after a short delay
         setTimeout(() => this.processQueue(), 500);
       } catch (error) {
         console.error('Error processing message queue:', error);
-        // Continue with next message
         setTimeout(() => this.processQueue(), 1000);
       }
     }
@@ -240,13 +249,10 @@ export class VoiceNarrator {
 
   private cleanTextForSpeech(text: string): string {
     return text
-      // Remove markdown
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/`(.*?)`/g, '$1')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      
-      // Remove emojis but keep their meaning
       .replace(/🚀/g, ' rocket ')
       .replace(/✅/g, ' checkmark ')
       .replace(/❌/g, ' error ')
@@ -260,8 +266,6 @@ export class VoiceNarrator {
       .replace(/🎉/g, ' celebration ')
       .replace(/🤖/g, ' robot ')
       .replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '')
-      
-      // Clean up formatting
       .replace(/\n+/g, '. ')
       .replace(/\s+/g, ' ')
       .replace(/\.\s*\./g, '.')
@@ -270,15 +274,19 @@ export class VoiceNarrator {
 
   // Event handlers for UI updates
   private onSpeechStart(message: NarratorMessage) {
-    window.dispatchEvent(new CustomEvent('narrator:speaking:start', { 
-      detail: { message } 
-    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('narrator:speaking:start', {
+        detail: { message }
+      }));
+    }
   }
 
   private onSpeechEnd(message: NarratorMessage) {
-    window.dispatchEvent(new CustomEvent('narrator:speaking:end', { 
-      detail: { message } 
-    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('narrator:speaking:end', {
+        detail: { message }
+      }));
+    }
   }
 
   // Control methods

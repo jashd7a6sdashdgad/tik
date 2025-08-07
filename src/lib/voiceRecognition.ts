@@ -1,5 +1,4 @@
-// Voice Recognition System for Two-Way Voice Communication
-
+// src/lib/voiceRecognition.ts
 // Web Speech API type declarations
 declare global {
   interface Window {
@@ -36,7 +35,7 @@ interface SpeechRecognitionErrorEvent extends Event {
 
 declare const SpeechRecognition: {
   prototype: SpeechRecognition;
-  new (): SpeechRecognition;
+  new(): SpeechRecognition;
 };
 
 export interface VoiceRecognitionConfig {
@@ -62,6 +61,8 @@ export interface VoiceRecognitionCallbacks {
   onSpeechEnd: () => void;
 }
 
+// Export the class directly without creating a singleton instance.
+// This allows the consuming hook (useVoiceInput) to instantiate it only on the client.
 export class VoiceRecognition {
   private recognition: SpeechRecognition | null = null;
   private isListening: boolean = false;
@@ -71,7 +72,7 @@ export class VoiceRecognition {
   private lastTranscript: string = '';
   private silenceTimer: NodeJS.Timeout | null = null;
 
-  constructor(config?: Partial<VoiceRecognitionConfig>) {
+  constructor(config?: Partial<VoiceRecognitionConfig>, callbacks?: Partial<VoiceRecognitionCallbacks>) {
     this.config = {
       language: 'en-US',
       continuous: true,
@@ -79,14 +80,18 @@ export class VoiceRecognition {
       maxAlternatives: 3,
       ...config
     };
+    this.callbacks = { ...callbacks };
 
-    this.initializeRecognition();
+    // Defer initialization to when the class is created on the client.
+    // This is the key fix for Next.js SSR issues.
+    if (typeof window !== 'undefined') {
+      this.initializeRecognition();
+    }
   }
 
   private initializeRecognition(): void {
-    // Check for browser support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+
     if (SpeechRecognition) {
       this.isSupported = true;
       this.recognition = new SpeechRecognition();
@@ -110,15 +115,12 @@ export class VoiceRecognition {
     this.recognition.onstart = () => {
       this.isListening = true;
       this.callbacks.onStart?.();
-      this.dispatchEvent('voiceRecognition:start');
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
       this.callbacks.onEnd?.();
-      this.dispatchEvent('voiceRecognition:end');
       
-      // Clear silence timer
       if (this.silenceTimer) {
         clearTimeout(this.silenceTimer);
         this.silenceTimer = null;
@@ -127,12 +129,10 @@ export class VoiceRecognition {
 
     this.recognition.onspeechstart = () => {
       this.callbacks.onSpeechStart?.();
-      this.dispatchEvent('voiceRecognition:speechStart');
     };
 
     this.recognition.onspeechend = () => {
       this.callbacks.onSpeechEnd?.();
-      this.dispatchEvent('voiceRecognition:speechEnd');
     };
 
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -140,7 +140,6 @@ export class VoiceRecognition {
       let confidence = 0;
       let isInterim = false;
 
-      // Process results
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         transcript += result[0].transcript;
@@ -148,21 +147,18 @@ export class VoiceRecognition {
         isInterim = !result.isFinal;
       }
 
-      // Only process if transcript has changed or is final
-      if (transcript !== this.lastTranscript || !isInterim) {
-        this.lastTranscript = transcript;
+      if (transcript.trim() !== this.lastTranscript || !isInterim) {
+        this.lastTranscript = transcript.trim();
         
         const command: VoiceCommand = {
-          transcript: transcript.trim(),
+          transcript: this.lastTranscript,
           confidence,
           timestamp: new Date(),
           isInterim
         };
 
         this.callbacks.onResult?.(command);
-        this.dispatchEvent('voiceRecognition:result', { command });
 
-        // Set silence timer for continuous listening
         if (!isInterim && this.config.continuous) {
           this.resetSilenceTimer();
         }
@@ -199,7 +195,7 @@ export class VoiceRecognition {
       }
 
       this.callbacks.onError?.(errorMessage);
-      this.dispatchEvent('voiceRecognition:error', { error: errorMessage });
+      this.isListening = false;
     };
   }
 
@@ -208,7 +204,6 @@ export class VoiceRecognition {
       clearTimeout(this.silenceTimer);
     }
 
-    // Stop listening after 3 seconds of silence
     this.silenceTimer = setTimeout(() => {
       if (this.isListening) {
         this.stopListening();
@@ -216,19 +211,13 @@ export class VoiceRecognition {
     }, 3000);
   }
 
-  private dispatchEvent(eventName: string, detail: any = {}): void {
-    window.dispatchEvent(new CustomEvent(eventName, { detail }));
-  }
-
   // Public methods
   startListening(): boolean {
-    if (!this.isSupported || !this.recognition) {
-      this.callbacks.onError?.('Speech recognition not supported');
+    if (!this.isSupported || !this.recognition || this.isListening) {
+      if (!this.isSupported) {
+        this.callbacks.onError?.('Speech recognition not supported');
+      }
       return false;
-    }
-
-    if (this.isListening) {
-      return true;
     }
 
     try {
@@ -243,11 +232,6 @@ export class VoiceRecognition {
   stopListening(): void {
     if (this.recognition && this.isListening) {
       this.recognition.stop();
-    }
-    
-    if (this.silenceTimer) {
-      clearTimeout(this.silenceTimer);
-      this.silenceTimer = null;
     }
   }
 
@@ -283,15 +267,15 @@ export class VoiceRecognition {
   }
 
   // Getters
-  isRecognitionSupported(): boolean {
+  get isRecognitionSupported(): boolean {
     return this.isSupported;
   }
 
-  isCurrentlyListening(): boolean {
+  get isCurrentlyListening(): boolean {
     return this.isListening;
   }
 
-  getConfig(): VoiceRecognitionConfig {
+  get configData(): VoiceRecognitionConfig {
     return { ...this.config };
   }
 
@@ -303,23 +287,5 @@ export class VoiceRecognition {
     }
     this.recognition = null;
     this.callbacks = {};
-  }
-}
-
-// Create singleton instance
-export const voiceRecognition = new VoiceRecognition();
-
-// Convenience functions
-export const startListening = (): boolean => voiceRecognition.startListening();
-export const stopListening = (): void => voiceRecognition.stopListening();
-export const toggleListening = (): boolean => voiceRecognition.toggleListening();
-export const isListening = (): boolean => voiceRecognition.isCurrentlyListening();
-export const isRecognitionSupported = (): boolean => voiceRecognition.isRecognitionSupported();
-
-// Speech Recognition types for TypeScript
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
   }
 }

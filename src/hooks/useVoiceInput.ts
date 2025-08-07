@@ -1,3 +1,4 @@
+// src/hooks/useVoiceInput.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { VoiceRecognition } from '@/lib/voiceRecognition';
 
@@ -29,8 +30,12 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
   
   const voiceRecognition = useRef<VoiceRecognition | null>(null);
 
-  // Initialize voice recognition
   useEffect(() => {
+    // Only run this code on the client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const recognition = new VoiceRecognition({
       language: config.language || 'en-US',
       continuous: config.continuous !== false,
@@ -67,28 +72,28 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     });
 
     voiceRecognition.current = recognition;
-    setIsSupported(recognition.isSupported());
+    setIsSupported(recognition.isSupported);
 
-    // Cleanup
+    // Cleanup function: runs when the component unmounts
     return () => {
+      // The `if` check here is important to avoid a null reference error
       if (voiceRecognition.current) {
         voiceRecognition.current.stop();
       }
     };
   }, [config.language, config.continuous, config.interimResults, config.onResult]);
 
-  // Check browser support
   useEffect(() => {
     if (!isSupported) {
       setError('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
     }
   }, [isSupported]);
 
-
-
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
-      // Request microphone permission
+      if (typeof window === 'undefined' || !navigator.mediaDevices) {
+        throw new Error('Media devices not supported');
+      }
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setHasPermission(true);
       return true;
@@ -126,7 +131,7 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     setTranscript('');
     
     try {
-      await voiceRecognition.current.start();
+      voiceRecognition.current.start();
     } catch (error: any) {
       console.error('🎤 Failed to start voice recognition:', error);
       setError(error.message || 'Failed to start voice recognition');
@@ -158,5 +163,3 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
     requestPermission
   };
 }
-
-// Updated to use native Web Speech API for React 19 compatibility
