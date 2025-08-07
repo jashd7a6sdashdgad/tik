@@ -481,7 +481,7 @@ export default function NotificationSettings() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button onClick={() => testNotification('critical')} variant="destructive" size="sm">
+            <Button onClick={() => testNotification('critical')} variant="secondary" size="sm">
               🚨 Critical
             </Button>
             <Button onClick={() => testNotification('high')} className="bg-orange-600 hover:bg-orange-700" size="sm">
