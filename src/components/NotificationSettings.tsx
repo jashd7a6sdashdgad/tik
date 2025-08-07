@@ -308,7 +308,7 @@ export default function NotificationSettings() {
                     return (
                       <Button
                         key={channel}
-                        variant={isSelected ? 'default' : 'outline'}
+                        variant={isSelected ? 'primary' : 'outline'}
                         size="sm"
                         onClick={() => {
                           const current = preferences.channelPreferences[priority] || [];
