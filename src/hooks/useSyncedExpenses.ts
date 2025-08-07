@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSync } from '@/lib/sync';
-import { useOffline, OfflineCapableData } from '@/lib/offline';
+import { useSync } from '@/hooks/useSync';
+import { useOffline } from '@/hooks/useOffline';
+import { OfflineCapableData } from '@/lib/offline';
 
 export interface SyncedExpense extends OfflineCapableData {
   id: string;
