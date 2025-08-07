@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTranslation } from '@/lib/translations';
-import { useSpeechSynthesis, useSpeechRecognition } from 'react-speech-kit';
+import { VoiceRecognition } from '@/lib/voiceRecognition';
 import { 
   Mic, 
   MicOff, 

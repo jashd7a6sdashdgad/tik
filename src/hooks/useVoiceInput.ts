@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSpeechRecognition } from 'react-speech-kit';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { VoiceRecognition } from '@/lib/voiceRecognition';
 
 interface VoiceInputConfig {
   language?: string;
@@ -23,84 +23,132 @@ interface UseVoiceInputReturn {
 export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputReturn {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState(true); // react-speech-kit handles permissions internally
+  const [hasPermission, setHasPermission] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
   
-  const {
-    listen,
-    listening,
-    stop,
-    supported
-  } = useSpeechRecognition({
-    onResult: (result: string) => {
-      console.log('🎤 Voice input result:', result);
-      setTranscript(result);
-      if (config.onResult) {
-        config.onResult(result);
+  const voiceRecognition = useRef<VoiceRecognition | null>(null);
+
+  // Initialize voice recognition
+  useEffect(() => {
+    const recognition = new VoiceRecognition({
+      language: config.language || 'en-US',
+      continuous: config.continuous !== false,
+      interimResults: config.interimResults !== false,
+      maxAlternatives: 1
+    }, {
+      onResult: (command) => {
+        console.log('🎤 Voice input result:', command.transcript);
+        setTranscript(command.transcript);
+        if (config.onResult) {
+          config.onResult(command.transcript);
+        }
+      },
+      onError: (error) => {
+        console.error('🎤 Voice input error:', error);
+        setError(error);
+        setIsListening(false);
+      },
+      onStart: () => {
+        console.log('🎤 Voice recognition started');
+        setIsListening(true);
+        setError(null);
+      },
+      onEnd: () => {
+        console.log('🎤 Voice recognition ended');
+        setIsListening(false);
+      },
+      onSpeechStart: () => {
+        console.log('🎤 Speech detected');
+      },
+      onSpeechEnd: () => {
+        console.log('🎤 Speech ended');
       }
-    },
-    onError: (error: any) => {
-      console.error('🎤 Voice input error:', error);
-      setError(error.message || 'Voice recognition error occurred');
-    }
-  });
+    });
+
+    voiceRecognition.current = recognition;
+    setIsSupported(recognition.isSupported());
+
+    // Cleanup
+    return () => {
+      if (voiceRecognition.current) {
+        voiceRecognition.current.stop();
+      }
+    };
+  }, [config.language, config.continuous, config.interimResults, config.onResult]);
 
   // Check browser support
   useEffect(() => {
-    if (!supported) {
+    if (!isSupported) {
       setError('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
     }
-  }, [supported]);
+  }, [isSupported]);
 
 
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    // react-speech-kit handles permissions internally
-    // This is kept for compatibility with existing code
-    return true;
+    try {
+      // Request microphone permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      setHasPermission(true);
+      return true;
+    } catch (error) {
+      console.error('🎤 Microphone permission denied:', error);
+      setHasPermission(false);
+      setError('Microphone permission denied. Please allow microphone access.');
+      return false;
+    }
   }, []);
 
-  const startListening = useCallback(() => {
-    if (!supported) {
+  const startListening = useCallback(async () => {
+    if (!voiceRecognition.current) {
+      setError('Voice recognition not initialized');
+      return;
+    }
+
+    if (!isSupported) {
       setError('Speech recognition not supported in this browser');
       return;
     }
 
-    if (listening) {
+    if (isListening) {
       console.log('🎤 Already listening, ignoring start request');
       return;
+    }
+
+    if (!hasPermission) {
+      const granted = await requestPermission();
+      if (!granted) return;
     }
 
     console.log('🎤 Starting voice recognition...');
     setError(null);
     setTranscript('');
     
-    listen({
-      lang: config.language || 'en-US',
-      interimResults: config.interimResults !== false,
-      continuous: config.continuous !== false
-    });
-  }, [supported, listening, listen, config]);
+    try {
+      await voiceRecognition.current.start();
+    } catch (error: any) {
+      console.error('🎤 Failed to start voice recognition:', error);
+      setError(error.message || 'Failed to start voice recognition');
+      setIsListening(false);
+    }
+  }, [voiceRecognition, isSupported, isListening, hasPermission, requestPermission]);
 
   const stopListening = useCallback(() => {
+    if (!voiceRecognition.current) return;
+    
     console.log('🎤 Stopping voice recognition...');
-    stop();
-  }, [stop]);
+    voiceRecognition.current.stop();
+  }, [voiceRecognition]);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     setError(null);
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
-
   return {
-    isListening: listening,
-    isSupported: supported,
+    isListening,
+    isSupported,
     transcript,
     error,
     hasPermission,
@@ -111,4 +159,4 @@ export function useVoiceInput(config: VoiceInputConfig = {}): UseVoiceInputRetur
   };
 }
 
-// Updated to use react-speech-kit for better reliability and compatibility
+// Updated to use native Web Speech API for React 19 compatibility
